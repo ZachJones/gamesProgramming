@@ -1,11 +1,13 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 #include <GL/glew.h>
 #include <SDL.h>
+#include "Model.h"
 
-//#include <GLFW/glfw3.h>
+#include "PxPhysicsAPI.h"
 
 #define GLM_FORCE_RADIANS //force glm to use radians //must do **before** including GLM headers
 //NOTE: GLSL uses radians, so will do the same, for consistency
@@ -80,7 +82,7 @@ const float vertexPositions[] = {
 	5.0f, -1.0f, 5.0f, 1.0f,
 	-5.0f, -1.0f, 5.0f, 1.0f,
 
-	//Walls
+	//############################################################################# Walls
 	-5.0f, -1.0f, 5.0f, 1.0f,
 	5.0f, -1.0f, 5.0f, 1.0f,
 	-5.0f, 5.0f, 5.0f, 1.0f,
@@ -112,6 +114,7 @@ const float vertexPositions[] = {
 	5.0f, -1.0f, -5.0f, 1.0f,
 	5.0f, 5.0f, 5.0f, 1.0f,
 	5.0f, -1.0f, 5.0f, 1.0f,
+
 
 	//############################################################################################################## COLOURS
 
@@ -163,6 +166,8 @@ const float vertexPositions[] = {
 
 };
 
+Model* modelx;
+
 const Uint8 *movement; //movement variable for viewpoint changes
 
 //the offset we'll pass to the GLSL
@@ -171,7 +176,7 @@ double offsetY = -0.5; //NOTE: we could use an array and pass the pointer, to be
 double offsetXSpeed = 0.2; //rate of change of offsetX in units per second
 double offsetYSpeed = 0.2; //rate of change of offsetY in units per second
 
-float angle = 0.0f;
+float angle = 90.0f;
 float angle2 = 0.0f;
 
 float viewChangeX = 0.0f; //Change the view matrix over time
@@ -179,11 +184,11 @@ float viewChangeY = 0.0f; //Change the view matrix over time
 float viewChangeZ = 0.0f; //Change the view matrix over time
 
 float eyeCentreX = 0.0f;
-float eyeCentreY = -0.9f;
+float eyeCentreY = 0.5f;
 float eyeCentreZ = 0.0f;
 
 float centreX = 0.0f;
-float centreY = -0.9f;
+float centreY = 0.0f;
 float centreZ = 0.0f;
 
 Sint32 mouseX = 0;
@@ -222,7 +227,27 @@ GLint positionLocation; //GLuint that we'll fill in with the location of the `of
 GLint offsetLocation; //GLuint that we'll fill in with the location of the `offset` variable in the GLSL
 
 GLuint positionBufferObject;
+GLuint playerBufferObject;
 GLuint vao;
+
+void getPlayerRotation();
+void initialise();
+void createWindow();
+void setGLAttributes();
+void createContext();
+void initGlew();
+GLuint createShader(GLenum eShaderType, const std::string &strShaderFile);
+GLuint createProgram(const std::vector<GLuint> &shaderList);
+void initializeProgram();
+void initializeVertexBuffer();
+void loadAssets();
+void updateSimulation(double simLength);
+void handleInput();
+void getPlayerRotation();
+void render();
+void cleanUp();
+int main(int argc, char* args[]);
+
 
 // end Global Variables
 /////////////////////////
@@ -404,6 +429,13 @@ void initializeVertexBuffer()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), vertexPositions, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	cout << "positionBufferObject created OK! GLUint is: " << positionBufferObject << std::endl;
+
+	glGenBuffers(1, &playerBufferObject);
+
+	glBindBuffer(GL_ARRAY_BUFFER, playerBufferObject);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(modelx->vertices), NULL, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	std::cout << "playerBufferObject created OK! GLUint is: " << playerBufferObject << std::endl;
 }
 
 void loadAssets()
@@ -411,6 +443,8 @@ void loadAssets()
 	initializeProgram(); //create GLSL Shaders, link into a GLSL program
 
 	initializeVertexBuffer(); //load data into a vertex buffer
+
+	modelx = new Model();
 
 	glGenVertexArrays(1, &vao); //create a Vertex Array Object
 	glBindVertexArray(vao); //make the VAO active
@@ -467,72 +501,73 @@ void handleInput()
 
 	//############################################################################################################## PLAYER CONTROLS
 	
-	if(movement[SDL_SCANCODE_S])
+	if(movement[SDL_SCANCODE_W])
 	{
-		moveSpeedX += 0.002f;
+		//moveSpeedX += 0.02f;
+		getPlayerRotation();
 		
 		if(currentView.compare("player") == 0)
 		{
-			//Move movement
+			//Movement
 			eyeCentreX = moveSpeedX;
-			eyeCentreY = -0.9f;
+			eyeCentreY = 0.5f;
 			eyeCentreZ = moveSpeedZ;
 			
 			centreX = moveSpeedX;
-			centreY = -0.9f;
+			centreY = 0.0f;
 			centreZ = moveSpeedZ;
 		}
 	}
 
-	if(movement[SDL_SCANCODE_W])
+	if(movement[SDL_SCANCODE_S])
 	{
-		moveSpeedX -= 0.002f;
+		moveSpeedX -= 0.02f;
 
 		if(currentView.compare("player") == 0)
 		{
 			//Move movement
 			eyeCentreX = moveSpeedX;
-			eyeCentreY = -0.9f;
+			eyeCentreY = 0.5f;
 			eyeCentreZ = moveSpeedZ;
 
 			centreX = moveSpeedX;
-			centreY = -0.9f;
+			centreY = 0.0f;
 			centreZ = moveSpeedZ;
 		}
 	}
 
 
 	//Angle of rotation within the view sphere
-	if(movement[SDL_SCANCODE_A])
+	if(movement[SDL_SCANCODE_D])
 	{
-		moveSpeedZ += 0.002f;
+		moveSpeedZ += 0.02f;
 
 		if(currentView.compare("player") == 0)
 		{
 			//Move movement
 			eyeCentreX = moveSpeedX;
-			eyeCentreY = -0.9f;
+			eyeCentreY = 0.5f;
 			eyeCentreZ = moveSpeedZ;
 
 			centreX = moveSpeedX;
-			centreY = -0.9f;
+			centreY = 0.0f;
 			centreZ = moveSpeedZ;
 		}
 	}
 
-	if(movement[SDL_SCANCODE_D])
+	if(movement[SDL_SCANCODE_A])
 	{
-		moveSpeedZ -= 0.002f;
+		moveSpeedZ -= 0.02f;
 
 		if(currentView.compare("player") == 0)
 		{
 			//Move movement
 			eyeCentreX = moveSpeedX;
-			eyeCentreY = -0.9f;
+			eyeCentreY = 0.5f;
 			eyeCentreZ = moveSpeedZ;
 
 			centreX = moveSpeedX;
-			centreY = -0.9f;
+			centreY = 0.0f;
 			centreZ = moveSpeedZ;
 		}
 	}
@@ -582,11 +617,11 @@ void handleInput()
 	{
 		//Change view centre to player
 		eyeCentreX = moveSpeedX;
-		eyeCentreY = -0.9f;
+		eyeCentreY = 0.5f;
 		eyeCentreZ = moveSpeedZ;
 
 		centreX = moveSpeedX;
-		centreY = -0.9f;
+		centreY = 0.0f;
 		centreZ = moveSpeedZ;
 
 		currentView = "player";
@@ -617,7 +652,115 @@ void handleInput()
 	{
 		done = true;
 	}
+}
 
+void getPlayerRotation()
+{
+	double playerRotation = movementRotationAngle * (180 / M_PI);
+	double playerDirection = 0;
+	float rotationSize = playerRotation / 1000; //Used to determine the moveSpeed
+	float moveSpeed = 0.045f;
+	bool positive = false;
+
+	if (playerRotation > 0)
+	{
+		positive = true;
+
+		if (playerRotation >= 360) //Determine the direction the player is facing
+		{
+			do
+			{
+				playerDirection = playerRotation - 360;
+				playerRotation = playerDirection;
+			} while (playerDirection >= 360);
+		}
+		else
+			playerDirection = playerRotation;
+	}
+	else
+	{
+		positive = false;
+
+		if (playerRotation <= -360) //Determine the direction the player is facing
+		{
+			do
+			{
+				playerDirection = 360 + (playerRotation + 360);
+				playerRotation = playerDirection;
+			} while (playerDirection <= -360);
+		}
+		else
+			playerDirection = 360 + playerRotation;
+
+		cout << playerDirection << endl;
+	}
+
+	if (playerRotation >= 90) //Determine the amount of rotation within the 90 degree rotation
+	{
+		do
+		{
+			playerRotation -= 90;
+		} while (playerRotation >= 90);
+	}	
+
+	if (playerDirection == 0)
+	{
+		//Z = X
+		moveSpeedX += moveSpeed;
+		moveSpeedZ += moveSpeed;
+		//cout << moveSpeedX << moveSpeedZ << endl;
+	}
+	else
+	{
+		if (positive == true)
+		{
+			//Z > X
+			if (playerDirection < 90)
+			{
+				moveSpeedZ += (moveSpeed + rotationSize);
+				moveSpeedX -= (moveSpeed - rotationSize);
+			}
+			else if (playerDirection < 180)
+			{
+				moveSpeedZ += (moveSpeed + rotationSize);
+				moveSpeedX += (moveSpeed - rotationSize);
+			}
+			else if (playerDirection < 270)
+			{
+				moveSpeedZ -= (moveSpeed + rotationSize);
+				moveSpeedX += (moveSpeed - rotationSize);
+			}
+			else if (playerDirection < 360)
+			{
+				moveSpeedZ -= (moveSpeed + rotationSize);
+				moveSpeedX -= (moveSpeed - rotationSize);
+			}
+		}
+		else
+		{
+			//Z < X
+			if (playerDirection < 90)
+			{
+				moveSpeedZ += (moveSpeed - rotationSize);
+				moveSpeedX -= (moveSpeed + rotationSize);
+			}
+			else if (playerDirection < 180)
+			{
+				moveSpeedZ += (moveSpeed - rotationSize);
+				moveSpeedX += (moveSpeed + rotationSize);
+			}
+			else if (playerDirection < 270)
+			{
+				moveSpeedZ -= (moveSpeed - rotationSize);
+				moveSpeedX += (moveSpeed + rotationSize);
+			}
+			else if (playerDirection < 360)
+			{
+				moveSpeedZ -= (moveSpeed - rotationSize);
+				moveSpeedX -= (moveSpeed + rotationSize);
+			}
+		}
+	}
 }
 
 void render()
@@ -658,11 +801,30 @@ void render()
 
 	//############################################################################################################## VIEW MATRIX
 	glm::vec3 viewEye = glm::vec3(eyeCentreX,eyeCentreY,eyeCentreZ); //Default = (0.0f, 0.0f, -1.0f)
-	glm::vec3 viewCenter = glm::vec3(viewChangeX + centreX, viewChangeY + centreY, viewChangeZ + centreZ); //Default = (0.0f, 0.0f, 0.0f)
+	//glm::vec3 viewEye = glm::vec3(0, 5, 2);
+	glm::vec3 viewCenter = glm::vec3(centreX + 0.3f, centreY + 0.3f, centreZ); //Default = (0.0f, 0.0f, 0.0f)
+	//glm::vec3 viewCenter = glm::vec3(0,0,0);
 	glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f); //Default = (0.0f, 1.0f, 0.0f)
 
 	viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
 
+
+	//############################################################################################################## LOAD PLAYER MODEL
+	glBindBuffer(GL_ARRAY_BUFFER, playerBufferObject); //bind playerBufferObject
+	glEnableVertexAttribArray(positionLocation);
+
+	glm::mat4 translateMatrix = glm::translate(glm::vec3(-0.6f, 0.5f, 1.36f)); //Initialisation Translation
+	glm::mat4 translateMatrix2 = glm::translate(glm::vec3(eyeCentreX + 1.5f, eyeCentreY - 2.0f, eyeCentreZ)); //Walking Translation
+	glm::mat4 rotateMatrix = glm::rotate(glm::mat4(), 1.6f, glm::normalize(glm::vec3(0, eyeCentreY, 0)));//Initialisation Rotation
+	glm::mat4 rotateMatrix2 = glm::rotate(glm::mat4(), -movementRotationAngle, glm::normalize(glm::vec3(0, 1, 0)));//Walking Rotation
+
+	modelMatrix2 = translateMatrix2 * rotateMatrix2 * rotateMatrix * translateMatrix;// * rotateMatrix;
+
+	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix2));
+	modelx->Render();
+
+
+	//glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
 	//############################################################################################################## CLEAN UP
 	glDisableVertexAttribArray(0); //cleanup
@@ -693,9 +855,10 @@ int main( int argc, char* args[] )
 	//load stuff from files
 	//- usually do just once
 	loadAssets();
+	
+	
 
-
-	while (!done && (SDL_GetTicks() < 500000000000000)) //LOOP FROM HERE, for 2000ms (or if done flag is set)
+	while (!done) //LOOP FROM HERE, for 2000ms (or if done flag is set)
 		//WARNING: SDL_GetTicks is only accurate to milliseconds, use SDL_GetPerformanceCounter and SDL_GetPerformanceFrequency for higher accuracy
 	{
 		//GET INPUT HERE - PLACEHOLDER
