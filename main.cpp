@@ -5,7 +5,10 @@
 
 #include <GL/glew.h>
 #include <SDL.h>
+#include <SDL_mixer.h>
+
 #include "Model.h"
+#include "VertexPositions.h"
 
 #include "PxPhysicsAPI.h"
 
@@ -68,104 +71,6 @@ const std::string strFragmentShader(
 //our variables
 bool done = false;
 
-const float vertexPositions[] = {
-
-	//############################################################################################################## POSITIONS
-
-	//############################################################################# PLANE
-	
-	5.0f, -1.0f, -5.0f, 1.0f,
-	-5.0f, -1.0f, 5.0f, 1.0f,
-	-5.0f, -1.0f, -5.0f, 1.0f,
-	
-	5.0f, -1.0f, -5.0f, 1.0f,
-	5.0f, -1.0f, 5.0f, 1.0f,
-	-5.0f, -1.0f, 5.0f, 1.0f,
-
-	//############################################################################# Walls
-	-5.0f, -1.0f, 5.0f, 1.0f,
-	5.0f, -1.0f, 5.0f, 1.0f,
-	-5.0f, 5.0f, 5.0f, 1.0f,
-	
-	5.0f, 5.0f, 5.0f, 1.0f,
-	-5.0f, 5.0f, 5.0f, 1.0f,
-	5.0f, -1.0f, 5.0f, 1.0f,
-	
-	5.0f, -1.0f, -5.0f, 1.0f,
-	-5.0f, -1.0f, -5.0f, 1.0f,
-	-5.0f, 5.0f, -5.0f, 1.0f,
-	
-	5.0f, -1.0f, -5.0f, 1.0f,
-	-5.0f, 5.0f, -5.0f, 1.0f,
-	5.0f, 5.0f, -5.0f, 1.0f,
-
-	-5.0f, 5.0f, 5.0f, 1.0f,
-	-5.0f, 5.0f, -5.0f, 1.0f,
-	-5.0f, -1.0f, -5.0f, 1.0f,
-	
-	-5.0f, 5.0f, 5.0f, 1.0f,
-	-5.0f, -1.0f, -5.0f, 1.0f,
-	-5.0f, -1.0f, 5.0f, 1.0f,
-
-	5.0f, 5.0f, -5.0f, 1.0f,
-	5.0f, 5.0f, 5.0f, 1.0f,
-	5.0f, -1.0f, -5.0f, 1.0f,
-
-	5.0f, -1.0f, -5.0f, 1.0f,
-	5.0f, 5.0f, 5.0f, 1.0f,
-	5.0f, -1.0f, 5.0f, 1.0f,
-
-
-	//############################################################################################################## COLOURS
-
-	//############################################################################################################## PLANE
-	
-	0.9f, 0.9f, 1.0f, 1.0f,
-	0.9f, 0.9f, 1.0f, 1.0f,
-	0.9f, 0.9f, 1.0f, 1.0f,
-
-	0.9f, 0.9f, 1.0f, 1.0f,
-	0.9f, 0.9f, 1.0f, 1.0f,
-	0.9f, 0.9f, 1.0f, 1.0f,
-
-	//Blue Wall
-	0.0f, 0.0f, 1.0f, 1.0f,
-	0.0f, 0.0f, 1.0f, 1.0f,
-	0.0f, 0.0f, 1.0f, 1.0f,
-
-	0.0f, 0.0f, 1.0f, 1.0f,
-	0.0f, 0.0f, 1.0f, 1.0f,
-	0.0f, 0.0f, 1.0f, 1.0f,
-
-	//Cyan Wall
-	0.0f, 1.0f, 1.0f, 1.0f,
-	0.0f, 1.0f, 1.0f, 1.0f,
-	0.0f, 1.0f, 1.0f, 1.0f,
-
-	0.0f, 1.0f, 1.0f, 1.0f,
-	0.0f, 1.0f, 1.0f, 1.0f,
-	0.0f, 1.0f, 1.0f, 1.0f,
-
-	//Pink wall
-	1.0f, 0.0f, 1.0f, 1.0f,
-	1.0f, 0.0f, 1.0f, 1.0f,
-	1.0f, 0.0f, 1.0f, 1.0f,
-
-	1.0f, 0.0f, 1.0f, 1.0f,
-	1.0f, 0.0f, 1.0f, 1.0f,
-	1.0f, 0.0f, 1.0f, 1.0f,
-
-	//Red Wall
-	1.0f, 0.0f, 0.0f, 1.0f,
-	1.0f, 0.0f, 0.0f, 1.0f,
-	1.0f, 0.0f, 0.0f, 1.0f,
-
-	1.0f, 0.0f, 0.0f, 1.0f,
-	1.0f, 0.0f, 0.0f, 1.0f,
-	1.0f, 0.0f, 0.0f, 1.0f,
-
-};
-
 Model* modelx;
 
 const Uint8 *movement; //movement variable for viewpoint changes
@@ -183,7 +88,7 @@ float viewChangeX = 0.0f; //Change the view matrix over time
 float viewChangeY = 0.0f; //Change the view matrix over time
 float viewChangeZ = 0.0f; //Change the view matrix over time
 
-float eyeCentreX = 0.0f;
+float eyeCentreX = -4.0f;
 float eyeCentreY = 0.5f;
 float eyeCentreZ = 0.0f;
 
@@ -194,16 +99,18 @@ float centreZ = 0.0f;
 Sint32 mouseX = 0;
 Sint32 mouseY = 0;
 
-//GLFWwindow* window;
-
 float movementRotationAngle = 0.0f;
 float movementRadius = 2.0f;
 
-float moveSpeedX = 0.0f;
-float moveSpeedY = 0.0f;
+float moveSpeedX = -5.0f; //0.0f
+float moveSpeedY = 0.5f;
 float moveSpeedZ = 0.0f;
 
 string currentView = "player";
+
+float enemyMoveX = 0.0f;
+float enemyMoveY = 0.0f;
+float enemyMoveZ = 0.0f;
 
 //our GL and GLSL variables
 
@@ -230,6 +137,8 @@ GLuint positionBufferObject;
 GLuint playerBufferObject;
 GLuint vao;
 
+Mix_Music *music = NULL;
+
 void getPlayerRotation();
 void initialise();
 void createWindow();
@@ -247,6 +156,7 @@ void getPlayerRotation();
 void render();
 void cleanUp();
 int main(int argc, char* args[]);
+void playMusic();
 
 
 // end Global Variables
@@ -273,6 +183,8 @@ void createWindow()
 
 	//create window
 	win = SDL_CreateWindow(exeNameCStr, 100, 100, 600, 600, SDL_WINDOW_OPENGL); //same height and width makes the window square ...
+
+	SDL_WINDOW_RESIZABLE;
 
 	//error handling
 	if (win == nullptr)
@@ -455,15 +367,31 @@ void loadAssets()
 
 void updateSimulation(double simLength) //update simulation with an amount of time to simulate for (in seconds)
 {
-	//offsetX += offsetXSpeed * simLength;
-	//offsetY += offsetYSpeed * simLength;
+	angle += 0.2f;
 
-	angle2 += 0.02f;
-
-	if(movement[SDL_SCANCODE_W])
+	if (moveSpeedX > enemyMoveX)
 	{
-		//angle += 0.02f; //Changes the model matrix
+		enemyMoveX += 0.01;
+		//cout << "plus x" << endl;
 	}
+	else if (moveSpeedX < enemyMoveX)
+	{
+		enemyMoveX -= 0.01;
+		//cout << "minus x" << endl;
+	}
+	
+	if (moveSpeedZ > enemyMoveZ)
+	{
+		enemyMoveZ += 0.01;
+		//cout << "plus z" << endl;
+	}
+	else if (moveSpeedZ < enemyMoveZ)
+	{
+		enemyMoveZ -= 0.01;
+		//cout << "minus z" << endl;
+	}
+	//else
+		//cout << "lool you iz dead m8" << endl;
 }
 
 void handleInput()
@@ -485,9 +413,15 @@ void handleInput()
 		break;
 	case SDL_MOUSEMOTION:
 		if (camera.motion.x < mouseX)
+		{
 			movementRotationAngle -= 0.1f;
+			SDL_WarpMouseInWindow(win, 300, 300);
+		}
 		else
+		{
 			movementRotationAngle += 0.1f;
+			SDL_WarpMouseInWindow(win, 300, 300);
+		}
 
 		mouseX = camera.motion.x;
 		camera.motion.x = 0;
@@ -631,7 +565,7 @@ void handleInput()
 	{
 		//Change view centre to freecam
 		eyeCentreX = 0.0f;
-		eyeCentreY = 0.0f;
+		eyeCentreY = 10.0f;
 		eyeCentreZ = 0.0f;
 
 		centreX = 0.0f;
@@ -652,6 +586,9 @@ void handleInput()
 	{
 		done = true;
 	}
+
+	if (movement[SDL_SCANCODE_F])
+		SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN);
 }
 
 void getPlayerRotation()
@@ -683,15 +620,19 @@ void getPlayerRotation()
 
 		if (playerRotation <= -360) //Determine the direction the player is facing
 		{
+			
 			do
 			{
-				playerDirection = 360 + (playerRotation + 360);
-				playerRotation = playerDirection;
-			} while (playerDirection <= -360);
+				cout << "player rotation" << playerRotation << endl;
+				playerDirection = (playerRotation + 360);
+				playerRotation += 360;
+			} while (playerDirection < -360);
+			playerDirection = -playerDirection;
 		}
 		else
-			playerDirection = 360 + playerRotation;
+			playerDirection = -playerRotation;
 
+		
 		cout << playerDirection << endl;
 	}
 
@@ -703,12 +644,13 @@ void getPlayerRotation()
 		} while (playerRotation >= 90);
 	}	
 
+	cout << playerDirection << endl;
+
 	if (playerDirection == 0)
 	{
 		//Z = X
-		moveSpeedX += moveSpeed;
-		moveSpeedZ += moveSpeed;
-		//cout << moveSpeedX << moveSpeedZ << endl;
+		moveSpeedZ += (moveSpeed + rotationSize);
+		moveSpeedX += (moveSpeed - rotationSize);
 	}
 	else
 	{
@@ -741,22 +683,22 @@ void getPlayerRotation()
 			//Z < X
 			if (playerDirection < 90)
 			{
-				moveSpeedZ += (moveSpeed - rotationSize);
+				moveSpeedZ -= (moveSpeed - rotationSize);
 				moveSpeedX -= (moveSpeed + rotationSize);
 			}
 			else if (playerDirection < 180)
 			{
-				moveSpeedZ += (moveSpeed - rotationSize);
+				moveSpeedZ -= (moveSpeed - rotationSize);
 				moveSpeedX += (moveSpeed + rotationSize);
 			}
 			else if (playerDirection < 270)
 			{
-				moveSpeedZ -= (moveSpeed - rotationSize);
+				moveSpeedZ += (moveSpeed - rotationSize);
 				moveSpeedX += (moveSpeed + rotationSize);
 			}
 			else if (playerDirection < 360)
 			{
-				moveSpeedZ -= (moveSpeed - rotationSize);
+				moveSpeedZ += (moveSpeed - rotationSize);
 				moveSpeedX -= (moveSpeed + rotationSize);
 			}
 		}
@@ -785,7 +727,7 @@ void render()
 	glFrontFace(GL_CW);
 
 	glEnableVertexAttribArray(colourLocation);
-	glVertexAttribPointer(colourLocation, 4, GL_FLOAT, GL_FALSE, 0, (void *) 480); //define **how** values are reader from positionBufferObject in Attrib 0
+	glVertexAttribPointer(colourLocation, 4, GL_FLOAT, GL_FALSE, 0, (void *) 1152); //define **how** values are reader from positionBufferObject in Attrib 0
 
 
 	glDrawArrays(GL_TRIANGLES, 0, 30);
@@ -809,6 +751,15 @@ void render()
 	viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
 
 
+	//############################################################################################################## ENEMY CUBE
+	glm::mat4 translateMatrix3 = glm::translate(glm::vec3(enemyMoveX, 0.5, enemyMoveZ)); //Initialisation Translation
+
+	modelMatrix3 = translateMatrix3;
+
+	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix3));
+	glDrawArrays(GL_TRIANGLES, 30, 60);
+
+
 	//############################################################################################################## LOAD PLAYER MODEL
 	glBindBuffer(GL_ARRAY_BUFFER, playerBufferObject); //bind playerBufferObject
 	glEnableVertexAttribArray(positionLocation);
@@ -823,6 +774,16 @@ void render()
 	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix2));
 	modelx->Render();
 
+
+	glBindBuffer(GL_ARRAY_BUFFER, positionBufferObject);
+	glEnableVertexAttribArray(positionLocation);
+
+	glm::mat4 translateMatrix4 = glm::translate(glm::vec3(-0.6f, 0.5f, 1.36f)); //Initialisation Translation
+
+	modelMatrix4 = translateMatrix4;
+
+	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix4));
+	glDrawArrays(GL_TRIANGLES, 60, 66);
 
 	//glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
@@ -839,6 +800,22 @@ void cleanUp()
 	cout << "Cleaning up OK!\n";
 }
 
+//void playMusic()
+//{
+//	Mix_VolumeMusic(50);
+//
+//	music = Mix_LoadMUS("Hubris MIDI.mp3");
+//
+//	if (Mix_LoadMUS("Hubris MIDI.mp3") == false)
+//	{
+//		cout << "Cannot load music!" << endl;
+//		SDL_Quit();
+//		exit(1);
+//	}
+//	
+//	Mix_PlayMusic(music, 0);
+//}
+
 int main( int argc, char* args[] )
 {
 	exeName = args[0];
@@ -850,13 +827,15 @@ int main( int argc, char* args[] )
 	createContext();
 	initGlew();
 
+	SDL_ShowCursor(false);
+
 	glEnable(GL_DEPTH_TEST);
 
 	//load stuff from files
 	//- usually do just once
 	loadAssets();
 	
-	
+	//playMusic();
 
 	while (!done) //LOOP FROM HERE, for 2000ms (or if done flag is set)
 		//WARNING: SDL_GetTicks is only accurate to milliseconds, use SDL_GetPerformanceCounter and SDL_GetPerformanceFrequency for higher accuracy
