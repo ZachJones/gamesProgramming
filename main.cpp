@@ -32,38 +32,44 @@ SDL_GLContext context; //the SDL_GLContext
 
 //string holding the **source** of our vertex shader, to save loading from a file
 const std::string strVertexShader(
-	#ifdef OPENGL_VERSION_3_1
-		"#version 140\n"
-	#endif
-	#ifdef OPENGL_VERSION_3_3
-		"#version 140\n"
-	#endif
+#ifdef OPENGL_VERSION_3_1
+	"#version 140\n"
+#endif
+#ifdef OPENGL_VERSION_3_3
+	"#version 140\n"
+#endif
 	"in vec4 position;\n"
 	"in vec4 colour;\n"
+	"in vec2 vertUV;\n"
+	"smooth out vec2 fragUV;\n"
 	"uniform mat4 modelMatrix;\n"
 	"uniform mat4 viewMatrix;\n"
 	"uniform mat4 projectionMatrix;\n"
-	"out vec4 fragColour;\n" //send colours to frag shader
+	"smooth out vec4 fragColour;\n" //send colours to frag shader
 	"void main()\n"
 	"{\n"
 	"   gl_Position = projectionMatrix * viewMatrix * modelMatrix * position;\n"
 	"	fragColour = colour;\n"
+	"	fragUV = vertUV;\n"
 	"}\n"
 	);
 
 //string holding the **source** of our fragment shader, to save loading from a file
 const std::string strFragmentShader(
-	#ifdef OPENGL_VERSION_3_1
-		"#version 140\n"
-	#endif
-	#ifdef OPENGL_VERSION_3_3
-		"#version 140\n"
-	#endif
-	"in vec4 fragColour;\n"
-	"out vec4 outputColor;\n"
+#ifdef OPENGL_VERSION_3_1
+	"#version 140\n"
+#endif
+#ifdef OPENGL_VERSION_3_3
+	"#version 140\n"
+#endif
+	"smooth in vec4 fragColour;\n"
+	"uniform sampler2D textureSampler;\n"
+	"smooth in vec2 fragUV;\n"
+	"out vec4 outputColour;\n"
 	"void main()\n"
 	"{\n"
-	"   outputColor = fragColour;\n"
+	"	outputColour = texture(textureSampler, fragUV);\n"
+	//"   outputColour = fragColour;\n"
 	"}\n"
 	);
 
@@ -107,6 +113,14 @@ float moveSpeedY = 0.5f;
 float moveSpeedZ = 0.0f;
 
 string currentView = "player";
+
+GLint textureLocation;
+GLint textureSamplerLocation;
+GLuint textureID;
+GLuint textureID2;
+GLuint textureID3;
+GLuint textureID4;
+GLuint textureID5;
 
 float enemyMoveX = 0.0f;
 float enemyMoveY = 0.0f;
@@ -157,6 +171,7 @@ void render();
 void cleanUp();
 int main(int argc, char* args[]);
 void playMusic();
+void initializeTexturesAndSamplers();
 
 
 // end Global Variables
@@ -324,10 +339,11 @@ void initializeProgram()
 
 	positionLocation = glGetAttribLocation(theProgram, "position");
 	colourLocation = glGetAttribLocation(theProgram, "colour");
-	//offsetLocation = glGetUniformLocation(theProgram, "offset");
 	matrixLocation = glGetUniformLocation(theProgram, "modelMatrix");
 	viewLocation = glGetUniformLocation(theProgram, "viewMatrix");
 	projectionLocation = glGetUniformLocation(theProgram, "projectionMatrix");
+	textureLocation = glGetAttribLocation(theProgram, "vertUV");
+	textureSamplerLocation = glGetUniformLocation(theProgram, "textureSampler");
 
 	//clean up shaders (we don't need them anymore as they are no in theProgram
 	for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
@@ -350,11 +366,85 @@ void initializeVertexBuffer()
 	std::cout << "playerBufferObject created OK! GLUint is: " << playerBufferObject << std::endl;
 }
 
+void initializeTexturesAndSamplers()
+{
+	//################################################################################################################################ TEXTURES
+
+	//################################################################################################ HUD
+	SDL_Surface* image = SDL_LoadBMP("assets/Health.bmp");
+	if (image == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image->format->BytesPerPixel, image->w, image->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image);
+
+	cout << "texture created OK! GLUint is: " << textureID << std::endl;
+
+
+	//################################################################################################ Walls
+	SDL_Surface* image2 = SDL_LoadBMP("assets/Walls.bmp");
+	if (image2 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID2); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID2);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, image2->format->BytesPerPixel, image2->w, image2->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image2->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image2);
+
+	cout << "texture created OK! GLUint is: " << textureID2 << std::endl;
+
+	//################################################################################################ Death cube
+	SDL_Surface* image3 = SDL_LoadBMP("assets/Death.bmp");
+	if (image3 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID3); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID3);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, image3->format->BytesPerPixel, image3->w, image3->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image3->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image3);
+
+	cout << "texture created OK! GLUint is: " << textureID3 << std::endl;
+}
+
 void loadAssets()
 {
 	initializeProgram(); //create GLSL Shaders, link into a GLSL program
 
 	initializeVertexBuffer(); //load data into a vertex buffer
+
+	initializeTexturesAndSamplers();
 
 	modelx = new Model();
 
@@ -415,12 +505,12 @@ void handleInput()
 		if (camera.motion.x < mouseX)
 		{
 			movementRotationAngle -= 0.1f;
-			SDL_WarpMouseInWindow(win, 300, 300);
+			//SDL_WarpMouseInWindow(win, 300, 300);
 		}
 		else
 		{
 			movementRotationAngle += 0.1f;
-			SDL_WarpMouseInWindow(win, 300, 300);
+			//SDL_WarpMouseInWindow(win, 300, 300);
 		}
 
 		mouseX = camera.motion.x;
@@ -437,8 +527,8 @@ void handleInput()
 	
 	if(movement[SDL_SCANCODE_W])
 	{
-		//moveSpeedX += 0.02f;
-		getPlayerRotation();
+		moveSpeedX += 0.02f;
+		//getPlayerRotation();
 		
 		if(currentView.compare("player") == 0)
 		{
@@ -711,6 +801,15 @@ void render()
 
 	//load data to GLSL that **may** have changed
 
+	eyeCentreX = moveSpeedX;
+	eyeCentreY = 0.5f;
+	eyeCentreZ = moveSpeedZ;
+
+	centreX = moveSpeedX;
+	centreY = 0.0f;
+	centreZ = moveSpeedZ;
+
+
 	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
 	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, glm::value_ptr(viewMatrix));
 	glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
@@ -729,8 +828,21 @@ void render()
 	glEnableVertexAttribArray(colourLocation);
 	glVertexAttribPointer(colourLocation, 4, GL_FLOAT, GL_FALSE, 0, (void *) 1152); //define **how** values are reader from positionBufferObject in Attrib 0
 
+	//############################################################################################################## INITIALISE TEXTURES
+	glEnableVertexAttribArray(textureLocation);
+	glVertexAttribPointer(textureLocation, 2, GL_FLOAT, GL_FALSE, 0, (void *)1632); //Start at "TEXTURES" in vertexPositions
+
+	glUniform1i(textureSamplerLocation, 0);
+	glActiveTexture(GL_TEXTURE0);
+
+
+	//############################################################################################################## LEVEL
+	glBindTexture(GL_TEXTURE_2D, textureID2); //Bind health texture
 
 	glDrawArrays(GL_TRIANGLES, 0, 30);
+
+	glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
 
 	//############################################################################################################## PROJECTION MATRIX
 	float fovy = glm::radians(90.0f); //Default = 1.0f               - i.e. the view "cone"
@@ -740,24 +852,40 @@ void render()
 
 	projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
 
-
 	//############################################################################################################## VIEW MATRIX
 	glm::vec3 viewEye = glm::vec3(eyeCentreX,eyeCentreY,eyeCentreZ); //Default = (0.0f, 0.0f, -1.0f)
-	//glm::vec3 viewEye = glm::vec3(0, 5, 2);
 	glm::vec3 viewCenter = glm::vec3(centreX + 0.3f, centreY + 0.3f, centreZ); //Default = (0.0f, 0.0f, 0.0f)
-	//glm::vec3 viewCenter = glm::vec3(0,0,0);
 	glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f); //Default = (0.0f, 1.0f, 0.0f)
 
 	viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
 
 
+	//############################################################################################################## HUD
+	glBindTexture(GL_TEXTURE_2D, textureID); //Bind health texture
+
+	glm::mat4 translateMatrix4 = glm::translate(glm::vec3(0.0, 0.0, 0.0)); //Initialisation Translation
+	glm::mat4 rotateMatrix4 = glm::rotate(glm::mat4(), -0.3f, glm::normalize(glm::vec3(0, 0, 1)));//Initialisation Rotation
+	glm::mat4 translateMatrix5 = glm::translate(glm::vec3(eyeCentreX + 5.0, -1.0, eyeCentreZ)); //Initialisation Translation
+
+	modelMatrix4 = translateMatrix5 * rotateMatrix4 * translateMatrix4;
+
+	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix4));
+	glDrawArrays(GL_TRIANGLES, 66, 6);
+
+	glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
 	//############################################################################################################## ENEMY CUBE
+	glBindTexture(GL_TEXTURE_2D, textureID3); //Bind death texture
+
 	glm::mat4 translateMatrix3 = glm::translate(glm::vec3(enemyMoveX, 0.5, enemyMoveZ)); //Initialisation Translation
 
 	modelMatrix3 = translateMatrix3;
 
 	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix3));
-	glDrawArrays(GL_TRIANGLES, 30, 60);
+	glDrawArrays(GL_TRIANGLES, 30, 36);
+
+	glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
 
 
 	//############################################################################################################## LOAD PLAYER MODEL
@@ -778,14 +906,6 @@ void render()
 	glBindBuffer(GL_ARRAY_BUFFER, positionBufferObject);
 	glEnableVertexAttribArray(positionLocation);
 
-	glm::mat4 translateMatrix4 = glm::translate(glm::vec3(-0.6f, 0.5f, 1.36f)); //Initialisation Translation
-
-	modelMatrix4 = translateMatrix4;
-
-	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix4));
-	glDrawArrays(GL_TRIANGLES, 60, 66);
-
-	//glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
 	//############################################################################################################## CLEAN UP
 	glDisableVertexAttribArray(0); //cleanup
