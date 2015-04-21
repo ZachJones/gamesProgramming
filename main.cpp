@@ -81,14 +81,7 @@ Model* modelx;
 
 const Uint8 *movement; //movement variable for viewpoint changes
 
-//the offset we'll pass to the GLSL
-double offsetX = -0.5; //using different values from CPU and static GLSL examples, to make it clear this is working
-double offsetY = -0.5; //NOTE: we could use an array and pass the pointer, to be simpler & more efficent
-double offsetXSpeed = 0.2; //rate of change of offsetX in units per second
-double offsetYSpeed = 0.2; //rate of change of offsetY in units per second
-
 float angle = 90.0f;
-float angle2 = 0.0f;
 
 float viewChangeX = 0.0f; //Change the view matrix over time
 float viewChangeY = 0.0f; //Change the view matrix over time
@@ -113,6 +106,7 @@ float moveSpeedY = 0.5f;
 float moveSpeedZ = 0.0f;
 
 string currentView = "player";
+string currentScreen = "menu";
 
 GLint textureLocation;
 GLint textureSamplerLocation;
@@ -121,6 +115,7 @@ GLuint textureID2;
 GLuint textureID3;
 GLuint textureID4;
 GLuint textureID5;
+GLuint textureID6;
 
 float enemyMoveX = 0.0f;
 float enemyMoveY = 0.0f;
@@ -133,6 +128,7 @@ glm::mat4 modelMatrix2;
 glm::mat4 modelMatrix3;
 glm::mat4 modelMatrix4;
 glm::mat4 modelMatrix5;
+glm::mat4 modelMatrix6;
 GLuint matrixLocation; //<---------------------------------------------------------------- Should change to "modelLocation"
 
 glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)); //Default view (identity matrix)
@@ -152,6 +148,17 @@ GLuint playerBufferObject;
 GLuint vao;
 
 Mix_Music *music = NULL;
+Mix_Chunk *hitFX = NULL;
+
+int gameMiliseconds = 0;
+int gameTimer = 0;
+int loading = 0;
+
+bool isHurt = false;
+float playerHealth = 1.0f;
+
+bool score = false;
+int totalScore = 0;
 
 void getPlayerRotation();
 void initialise();
@@ -437,6 +444,79 @@ void initializeTexturesAndSamplers()
 	SDL_FreeSurface(image3);
 
 	cout << "texture created OK! GLUint is: " << textureID3 << std::endl;
+
+
+	//################################################################################################ Menu
+	SDL_Surface* image4 = SDL_LoadBMP("assets/Menu.bmp");
+	if (image4 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID4); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID4);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image4->format->BytesPerPixel, image4->w, image4->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image4->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image4);
+
+	cout << "texture created OK! GLUint is: " << textureID4 << std::endl;
+
+	//################################################################################################ Game Over
+	SDL_Surface* image5 = SDL_LoadBMP("assets/GameOver.bmp");
+	if (image5 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID5); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID5);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image5->format->BytesPerPixel, image5->w, image5->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image5->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image5);
+
+	cout << "texture created OK! GLUint is: " << textureID5 << std::endl;
+
+	//################################################################################################ Loading
+	SDL_Surface* image6 = SDL_LoadBMP("assets/Loading.bmp");
+	if (image6 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID6); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID6);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image6->format->BytesPerPixel, image6->w, image6->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image6->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image6);
+
+	cout << "texture created OK! GLUint is: " << textureID6 << std::endl;
 }
 
 void loadAssets()
@@ -460,34 +540,37 @@ void updateSimulation(float simLength) //update simulation with an amount of tim
 {
 	angle += simLength;
 
-	if (moveSpeedX + 1.2f > enemyMoveX)
+	if (currentScreen == "game")
 	{
-		enemyMoveX += 0.01;
-		//cout << enemyMoveX << endl;
-	}
-	else if (moveSpeedX + 1.2f < enemyMoveX)
-	{
-		enemyMoveX -= 0.01;
-		//cout << enemyMoveX << endl;
-	}
+		//Enemy collision detection
+		if (moveSpeedX + 1.2f > enemyMoveX)
+		{
+			enemyMoveX += 0.015;
+		}
+		else if (moveSpeedX + 1.2f < enemyMoveX)
+		{
+			enemyMoveX -= 0.015;
+		}
 
-	if (moveSpeedZ - 0.2f > enemyMoveZ)
-	{
-		enemyMoveZ += 0.01;
-		//cout << enemyMoveZ << endl;
-		//cout << moveSpeedZ << endl;
-	}
-	else if (moveSpeedZ - 0.2f < enemyMoveZ)
-	{
-		enemyMoveZ -= 0.01;
-		//cout << enemyMoveZ << endl;
-	}
+		if (moveSpeedZ - 0.2f > enemyMoveZ)
+		{
+			enemyMoveZ += 0.015;
+		}
+		else if (moveSpeedZ - 0.2f < enemyMoveZ)
+		{
+			enemyMoveZ -= 0.015;
+		}
 
+		if (moveSpeedX + 1.0f < enemyMoveX && moveSpeedX + 1.4 > enemyMoveX && moveSpeedZ - 0.4f < enemyMoveZ && moveSpeedZ - 0.0 > enemyMoveZ)
+		{
+			isHurt = true;
+		}
 
-	if (moveSpeedX + 1.1f < enemyMoveX && moveSpeedX + 1.3 > enemyMoveX && moveSpeedZ - 0.3f < enemyMoveZ && moveSpeedZ - 0.1 > enemyMoveZ)
-		cout << "lool you iz dead m8" << endl;
-	//else if (moveSpeedZ - 0.3f < enemyMoveZ && moveSpeedZ - 0.1 > enemyMoveZ)
-	//	cout << "lool you iz dead m8" << endl;
+		if (moveSpeedX < -1.0f && moveSpeedX > -1.4f && moveSpeedZ < 0.3f && moveSpeedZ > -0.26)
+		{
+			score = true;
+		}
+	}
 }
 
 void handleInput()
@@ -685,6 +768,55 @@ void handleInput()
 
 	if (movement[SDL_SCANCODE_F])
 		SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN);
+
+	if (movement[SDL_SCANCODE_RETURN])
+	{
+		if (currentScreen == "menu")
+		{
+			currentScreen = "loading";
+		}
+
+		if (currentScreen == "gameOver")
+		{
+			playerHealth = 1.0f;
+
+			score = false;
+			totalScore = 0;
+
+			angle = 90.0f;
+
+			viewChangeX = 0.0f; //Change the view matrix over time
+			viewChangeY = 0.0f; //Change the view matrix over time
+			viewChangeZ = 0.0f; //Change the view matrix over time
+
+			eyeCentreX = -4.0f;
+			eyeCentreY = 0.5f;
+			eyeCentreZ = 0.0f;
+
+			centreX = 0.0f;
+			centreY = 0.0f;
+			centreZ = 0.0f;
+
+			mouseX = 0;
+			mouseY = 0;
+
+			movementRotationAngle = 0.0f;
+			movementRadius = 2.0f;
+
+			moveSpeedX = -5.0f;
+			moveSpeedY = 0.5f;
+			moveSpeedZ = 0.0f;
+
+			currentView = "player";
+
+			enemyMoveX = 0.0f;
+			enemyMoveY = 0.0f;
+			enemyMoveZ = 0.0f;
+
+			currentScreen = "game";
+			playMusic();
+		}
+	}
 }
 
 void getPlayerRotation()
@@ -834,6 +966,7 @@ void render()
 	glEnableVertexAttribArray(colourLocation);
 	glVertexAttribPointer(colourLocation, 4, GL_FLOAT, GL_FALSE, 0, (void *) 1152); //define **how** values are reader from positionBufferObject in Attrib 0
 
+
 	//############################################################################################################## INITIALISE TEXTURES
 	glEnableVertexAttribArray(textureLocation);
 	glVertexAttribPointer(textureLocation, 2, GL_FLOAT, GL_FALSE, 0, (void *)1632); //Start at "TEXTURES" in vertexPositions
@@ -842,75 +975,218 @@ void render()
 	glActiveTexture(GL_TEXTURE0);
 
 
-	//############################################################################################################## LEVEL
-	glBindTexture(GL_TEXTURE_2D, textureID2); //Bind health texture
+	if (currentScreen == "loading")
+	{
+		//############################################################################################################## LEVEL
+		glBindTexture(GL_TEXTURE_2D, textureID6); //Load Menu texture
 
-	glDrawArrays(GL_TRIANGLES, 0, 30);
+		glDrawArrays(GL_TRIANGLES, 0, 6); //Generates the plane
 
-	glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
-
-
-	//############################################################################################################## PROJECTION MATRIX
-	float fovy = glm::radians(90.0f); //Default = 1.0f               - i.e. the view "cone"
-	float aspect = 4.0f/4.0f; //Default = 4.0f/3.0f     - i.e. aspect ratio 4:3
-	float zNear = 0.1f; //Default = 0.1f              - i.e. how close before clipping
-	float zFar = 100.0f; //Default = 1.0f                 - i.e. how far before clipping
-
-	projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
-
-	//############################################################################################################## VIEW MATRIX
-	glm::vec3 viewEye = glm::vec3(eyeCentreX,eyeCentreY,eyeCentreZ); //Default = (0.0f, 0.0f, -1.0f)
-	glm::vec3 viewCenter = glm::vec3(centreX + 0.3f, centreY + 0.3f, centreZ); //Default = (0.0f, 0.0f, 0.0f)
-	glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f); //Default = (0.0f, 1.0f, 0.0f)
-
-	viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
 
 
-	//############################################################################################################## HUD
-	glBindTexture(GL_TEXTURE_2D, textureID); //Bind health texture
+		//############################################################################################################## CUBE
+		glBindTexture(GL_TEXTURE_2D, textureID); //Load Cube texture
 
-	glm::mat4 translateMatrix4 = glm::translate(glm::vec3(0.0, 0.0, 0.0)); //Initialisation Translation
-	glm::mat4 rotateMatrix4 = glm::rotate(glm::mat4(), -0.3f, glm::normalize(glm::vec3(0, 0, 1)));//Initialisation Rotation
-	glm::mat4 translateMatrix5 = glm::translate(glm::vec3(eyeCentreX + 5.0, -1.0, eyeCentreZ)); //Initialisation Translation
+		glm::mat4 rotateMatrix5 = glm::rotate(glm::mat4(), angle, glm::normalize(glm::vec3(1, 0, 1)));//Initialisation Rotation
+		glm::mat4 translateMatrix6 = glm::translate(glm::vec3(-1.2f, 1.5f, -0.3f)); //Initialisation Translation
 
-	modelMatrix4 = translateMatrix5 * rotateMatrix4 * translateMatrix4;
+		modelMatrix5 = translateMatrix6 * rotateMatrix5;
 
-	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix4));
-	glDrawArrays(GL_TRIANGLES, 66, 6);
+		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix5));
 
-	glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+		glDrawArrays(GL_TRIANGLES, 30, 36); //Generates the plane
 
-
-	//############################################################################################################## ENEMY CUBE
-	glBindTexture(GL_TEXTURE_2D, textureID3); //Bind death texture
-
-	glm::mat4 translateMatrix3 = glm::translate(glm::vec3(enemyMoveX, 0.5, enemyMoveZ)); //Initialisation Translation
-
-	modelMatrix3 = translateMatrix3;
-
-	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix3));
-	glDrawArrays(GL_TRIANGLES, 30, 36);
-
-	glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
 
 
-	//############################################################################################################## LOAD PLAYER MODEL
-	glBindBuffer(GL_ARRAY_BUFFER, playerBufferObject); //bind playerBufferObject
-	glEnableVertexAttribArray(positionLocation);
+		//############################################################################################################## PROJECTION MATRIX
+		float fovy = glm::radians(90.0f); //Default = 1.0f               - i.e. the view "cone"
+		float aspect = 4.0f / 4.0f; //Default = 4.0f/3.0f     - i.e. aspect ratio 4:3
+		float zNear = 0.1f; //Default = 0.1f              - i.e. how close before clipping
+		float zFar = 100.0f; //Default = 1.0f                 - i.e. how far before clipping
 
-	glm::mat4 translateMatrix = glm::translate(glm::vec3(-0.6f, 0.5f, 1.36f)); //Initialisation Translation
-	glm::mat4 translateMatrix2 = glm::translate(glm::vec3(eyeCentreX + 1.5f, eyeCentreY - 2.0f, eyeCentreZ)); //Walking Translation
-	glm::mat4 rotateMatrix = glm::rotate(glm::mat4(), 1.6f, glm::normalize(glm::vec3(0, eyeCentreY, 0)));//Initialisation Rotation
-	glm::mat4 rotateMatrix2 = glm::rotate(glm::mat4(), -movementRotationAngle, glm::normalize(glm::vec3(0, 1, 0)));//Walking Rotation
+		projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
 
-	modelMatrix2 = translateMatrix2 * rotateMatrix2 * rotateMatrix * translateMatrix;// * rotateMatrix;
+		//############################################################################################################## VIEW MATRIX
+		glm::vec3 viewEye = glm::vec3(-0.0001f, 4.0f, 0.0f);
+		glm::vec3 viewCenter = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-	glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix2));
-	modelx->Render();
+		viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
+	}
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, positionBufferObject);
-	glEnableVertexAttribArray(positionLocation);
+	if (currentScreen == "menu")
+	{
+		//############################################################################################################## LEVEL
+		glBindTexture(GL_TEXTURE_2D, textureID4); //Load Menu texture
+
+		glDrawArrays(GL_TRIANGLES, 0, 6); //Generates the plane
+
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+		//############################################################################################################## CUBE
+		glBindTexture(GL_TEXTURE_2D, textureID); //Load Cube texture
+
+		glm::mat4 rotateMatrix5 = glm::rotate(glm::mat4(), angle, glm::normalize(glm::vec3(1, 0, 1)));//Initialisation Rotation
+		glm::mat4 translateMatrix6 = glm::translate(glm::vec3(-1.2f, 1.5f, -0.3f)); //Initialisation Translation
+
+		modelMatrix5 = translateMatrix6 * rotateMatrix5;
+
+		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix5));
+		
+		glDrawArrays(GL_TRIANGLES, 30, 36); //Generates the plane
+
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+		//############################################################################################################## PROJECTION MATRIX
+		float fovy = glm::radians(90.0f); //Default = 1.0f               - i.e. the view "cone"
+		float aspect = 4.0f / 4.0f; //Default = 4.0f/3.0f     - i.e. aspect ratio 4:3
+		float zNear = 0.1f; //Default = 0.1f              - i.e. how close before clipping
+		float zFar = 100.0f; //Default = 1.0f                 - i.e. how far before clipping
+
+		projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
+
+		//############################################################################################################## VIEW MATRIX
+		glm::vec3 viewEye = glm::vec3(-0.0001f, 4.0f, 0.0f);
+		glm::vec3 viewCenter = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+		viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
+	}
+
+	if (currentScreen == "game")
+	{
+		//############################################################################################################## LEVEL
+		glBindTexture(GL_TEXTURE_2D, textureID2); //Bind wall texture
+
+		glDrawArrays(GL_TRIANGLES, 0, 30);
+
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+		//############################################################################################################## PROJECTION MATRIX
+		float fovy = glm::radians(90.0f); //Default = 1.0f               - i.e. the view "cone"
+		float aspect = 4.0f / 4.0f; //Default = 4.0f/3.0f     - i.e. aspect ratio 4:3
+		float zNear = 0.1f; //Default = 0.1f              - i.e. how close before clipping
+		float zFar = 100.0f; //Default = 1.0f                 - i.e. how far before clipping
+
+		projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
+
+		//############################################################################################################## VIEW MATRIX
+		glm::vec3 viewEye = glm::vec3(eyeCentreX, eyeCentreY, eyeCentreZ); //Default = (0.0f, 0.0f, -1.0f)
+		glm::vec3 viewCenter = glm::vec3(centreX + 0.3f, centreY + 0.3f, centreZ); //Default = (0.0f, 0.0f, 0.0f)
+		glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f); //Default = (0.0f, 1.0f, 0.0f)
+
+		viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
+
+
+		//############################################################################################################## HUD
+		glBindTexture(GL_TEXTURE_2D, textureID); //Bind health texture
+
+		glm::mat4 translateMatrix4 = glm::translate(glm::vec3(0.0, 0.0, 0.0)); //Initialisation Translation
+		glm::mat4 rotateMatrix4 = glm::rotate(glm::mat4(), -0.3f, glm::normalize(glm::vec3(0, 0, 1)));//Initialisation Rotation
+		glm::mat4 translateMatrix5 = glm::translate(glm::vec3(eyeCentreX + 5.0, -1.0, eyeCentreZ)); //Initialisation Translation
+		glm::mat4 scaleMatrix = glm::scale(glm::vec3(1.0f, 1.0f, playerHealth));
+
+		modelMatrix4 = translateMatrix5 * scaleMatrix * rotateMatrix4 * translateMatrix4;
+
+		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix4));
+		glDrawArrays(GL_TRIANGLES, 66, 6);
+
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+		//############################################################################################################## ENEMY CUBE
+		glBindTexture(GL_TEXTURE_2D, textureID3); //Bind death texture
+
+		glm::mat4 translateMatrix3 = glm::translate(glm::vec3(enemyMoveX, 0.0, enemyMoveZ)); //Initialisation Translation
+
+		modelMatrix3 = translateMatrix3;
+
+		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix3));
+		glDrawArrays(GL_TRIANGLES, 30, 36);
+
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+		//############################################################################################################## CUBE
+		glBindTexture(GL_TEXTURE_2D, textureID); //Load Cube texture
+
+		glm::mat4 translateMatrix7 = glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)); //Initialisation Translation
+
+		modelMatrix6 = translateMatrix7;
+
+		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix6));
+
+		glDrawArrays(GL_TRIANGLES, 30, 36); //Generates the plane
+
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+		//############################################################################################################## LOAD PLAYER MODEL
+		glBindBuffer(GL_ARRAY_BUFFER, playerBufferObject); //bind playerBufferObject
+		glEnableVertexAttribArray(positionLocation);
+
+		glm::mat4 translateMatrix = glm::translate(glm::vec3(-0.6f, 0.5f, 1.36f)); //Initialisation Translation
+		glm::mat4 translateMatrix2 = glm::translate(glm::vec3(eyeCentreX + 1.5f, eyeCentreY - 2.0f, eyeCentreZ)); //Walking Translation
+		glm::mat4 rotateMatrix = glm::rotate(glm::mat4(), 1.6f, glm::normalize(glm::vec3(0, eyeCentreY, 0)));//Initialisation Rotation
+		glm::mat4 rotateMatrix2 = glm::rotate(glm::mat4(), -movementRotationAngle, glm::normalize(glm::vec3(0, 1, 0)));//Walking Rotation
+
+		modelMatrix2 = translateMatrix2 * rotateMatrix2 * rotateMatrix * translateMatrix;// * rotateMatrix;
+
+		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix2));
+		modelx->Render();
+
+
+		glBindBuffer(GL_ARRAY_BUFFER, positionBufferObject);
+		glEnableVertexAttribArray(positionLocation);
+	}
+
+
+	if (currentScreen == "gameOver")
+	{
+		//############################################################################################################## LEVEL
+		glBindTexture(GL_TEXTURE_2D, textureID5); //Load game over texture
+
+		glDrawArrays(GL_TRIANGLES, 0, 6); //Generates the plane
+
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+		//############################################################################################################## CUBE
+		glBindTexture(GL_TEXTURE_2D, textureID); //Load Cube texture
+
+		glm::mat4 rotateMatrix5 = glm::rotate(glm::mat4(), angle, glm::normalize(glm::vec3(1, 0, 1)));//Initialisation Rotation
+		glm::mat4 translateMatrix6 = glm::translate(glm::vec3(0.0f, 2.0f, -0.3f)); //Initialisation Translation
+
+		modelMatrix5 = translateMatrix6 * rotateMatrix5;
+
+		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix5));
+
+		glDrawArrays(GL_TRIANGLES, 30, 36); //Generates the plane
+
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+		//############################################################################################################## PROJECTION MATRIX
+		float fovy = glm::radians(90.0f); //Default = 1.0f               - i.e. the view "cone"
+		float aspect = 4.0f / 4.0f; //Default = 4.0f/3.0f     - i.e. aspect ratio 4:3
+		float zNear = 0.1f; //Default = 0.1f              - i.e. how close before clipping
+		float zFar = 100.0f; //Default = 1.0f                 - i.e. how far before clipping
+
+		projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
+
+		//############################################################################################################## VIEW MATRIX
+		glm::vec3 viewEye = glm::vec3(-0.0001f, 4.0f, 0.0f);
+		glm::vec3 viewCenter = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+		viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
+	}
 
 
 	//############################################################################################################## CLEAN UP
@@ -947,9 +1223,11 @@ void playMusic()
 	}
 
 	music = Mix_LoadMUS("Hubris_MIDI.wav");
-	if (music == NULL)
+	hitFX = Mix_LoadWAV("PlayerHit.wav");
+
+	if (music == NULL || hitFX == NULL)
 	{
-		cout << "Audio file failed to load.\n";
+		cout << "An audio file failed to load.\n";
 		system("pause");
 		SDL_Quit();
 		exit(1);
@@ -957,7 +1235,9 @@ void playMusic()
 	else
 	{
 		cout << "Music File Loaded\n";
-		Mix_PlayMusic(music, -1);
+
+		if (currentScreen == "game")
+			Mix_PlayMusic(music, -1);
 	}
 }
 
@@ -981,26 +1261,63 @@ int main( int argc, char* args[] )
 	//- usually do just once
 	loadAssets();
 
-	while (!done) //LOOP FROM HERE, for 2000ms (or if done flag is set)
-		//WARNING: SDL_GetTicks is only accurate to milliseconds, use SDL_GetPerformanceCounter and SDL_GetPerformanceFrequency for higher accuracy
+	while (!done) //Game loop - Loops until 'esc' key is pressed
 	{
-		//GET INPUT HERE - PLACEHOLDER
+		handleInput(); //Check for user input
 
-		handleInput();
-
-		updateSimulation(0.2f); //call update simulation with an amount of time to simulate for (in seconds)
-		  //WARNING - we are always updating by a constant amount of time. This should be tied to how long has elapsed
-		    // see, for example, http://headerphile.blogspot.co.uk/2014/07/part-9-no-more-delays.html
+		updateSimulation(0.25f);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		render(); //RENDER HERE - PLACEHOLDER
+		render();
 
-		SDL_GL_SwapWindow(win);; //present the frame buffer to the display (swapBuffers)
+		SDL_GL_SwapWindow(win);; //Present the frame buffer to the display (swapBuffers)
 
-	} //LOOP TO HERE
+		//Basic timer
+		gameMiliseconds++;
 
-	//cleanup and exit
+		if (gameMiliseconds == 60)
+		{
+			gameTimer++;
+			gameMiliseconds = 0;
+			if (isHurt == true)
+			{
+				playerHealth -= 0.2f;
+				Mix_PlayChannel(-1, hitFX, 0);
+				isHurt = false;
+				cout << "Player hit by Death Cube" << endl;
+			}
+			
+			if (score == true)
+			{
+				totalScore++;
+				score = false;
+			}
+
+			//cout << gameTimer << endl;
+			cout << totalScore << endl;
+
+			if (currentScreen == "loading")
+			{
+				if (loading == 5)
+				{
+					loading = 0;
+					currentScreen = "game";
+					playMusic();
+				}
+				else
+					loading++;
+			}
+		}
+
+		if (playerHealth <= 0.0f)
+		{
+			Mix_HaltMusic();
+			currentScreen = "gameOver";
+		}
+	}
+
+	//Cleanup and exit
 	cleanUp();
 	SDL_Quit();
 
