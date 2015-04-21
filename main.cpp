@@ -164,7 +164,7 @@ GLuint createProgram(const std::vector<GLuint> &shaderList);
 void initializeProgram();
 void initializeVertexBuffer();
 void loadAssets();
-void updateSimulation(double simLength);
+void updateSimulation(float simLength);
 void handleInput();
 void getPlayerRotation();
 void render();
@@ -172,6 +172,7 @@ void cleanUp();
 int main(int argc, char* args[]);
 void playMusic();
 void initializeTexturesAndSamplers();
+void enemyMovement();
 
 
 // end Global Variables
@@ -455,33 +456,38 @@ void loadAssets()
 	cout << "Loaded Assets OK!\n";
 }
 
-void updateSimulation(double simLength) //update simulation with an amount of time to simulate for (in seconds)
+void updateSimulation(float simLength) //update simulation with an amount of time to simulate for (in seconds)
 {
-	angle += 0.2f;
+	angle += simLength;
 
-	if (moveSpeedX > enemyMoveX)
+	if (moveSpeedX + 1.2f > enemyMoveX)
 	{
 		enemyMoveX += 0.01;
-		//cout << "plus x" << endl;
+		//cout << enemyMoveX << endl;
 	}
-	else if (moveSpeedX < enemyMoveX)
+	else if (moveSpeedX + 1.2f < enemyMoveX)
 	{
 		enemyMoveX -= 0.01;
-		//cout << "minus x" << endl;
+		//cout << enemyMoveX << endl;
 	}
-	
-	if (moveSpeedZ > enemyMoveZ)
+
+	if (moveSpeedZ - 0.2f > enemyMoveZ)
 	{
 		enemyMoveZ += 0.01;
-		//cout << "plus z" << endl;
+		//cout << enemyMoveZ << endl;
+		//cout << moveSpeedZ << endl;
 	}
-	else if (moveSpeedZ < enemyMoveZ)
+	else if (moveSpeedZ - 0.2f < enemyMoveZ)
 	{
 		enemyMoveZ -= 0.01;
-		//cout << "minus z" << endl;
+		//cout << enemyMoveZ << endl;
 	}
-	//else
-		//cout << "lool you iz dead m8" << endl;
+
+
+	if (moveSpeedX + 1.1f < enemyMoveX && moveSpeedX + 1.3 > enemyMoveX && moveSpeedZ - 0.3f < enemyMoveZ && moveSpeedZ - 0.1 > enemyMoveZ)
+		cout << "lool you iz dead m8" << endl;
+	//else if (moveSpeedZ - 0.3f < enemyMoveZ && moveSpeedZ - 0.1 > enemyMoveZ)
+	//	cout << "lool you iz dead m8" << endl;
 }
 
 void handleInput()
@@ -920,21 +926,40 @@ void cleanUp()
 	cout << "Cleaning up OK!\n";
 }
 
-//void playMusic()
-//{
-//	Mix_VolumeMusic(50);
-//
-//	music = Mix_LoadMUS("Hubris MIDI.mp3");
-//
-//	if (Mix_LoadMUS("Hubris MIDI.mp3") == false)
-//	{
-//		cout << "Cannot load music!" << endl;
-//		SDL_Quit();
-//		exit(1);
-//	}
-//	
-//	Mix_PlayMusic(music, 0);
-//}
+void playMusic()
+{
+	Mix_VolumeMusic(50);
+
+	if (!SDL_WasInit(SDL_INIT_AUDIO))
+	{
+		cout << "SDL2 Audio failed to initialise. " << SDL_GetError() << "\n";
+		system("pause");
+		SDL_Quit();
+		exit(1);
+	}
+
+	if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+	{
+		cout << "SDL2_Mixer failed to initialise. " << Mix_GetError() << "\n";
+		system("pause");
+		SDL_Quit();
+		exit(1);
+	}
+
+	music = Mix_LoadMUS("Hubris_MIDI.wav");
+	if (music == NULL)
+	{
+		cout << "Audio file failed to load.\n";
+		system("pause");
+		SDL_Quit();
+		exit(1);
+	}
+	else
+	{
+		cout << "Music File Loaded\n";
+		Mix_PlayMusic(music, -1);
+	}
+}
 
 int main( int argc, char* args[] )
 {
@@ -946,7 +971,8 @@ int main( int argc, char* args[] )
 	setGLAttributes();
 	createContext();
 	initGlew();
-
+	playMusic();
+	
 	SDL_ShowCursor(false);
 
 	glEnable(GL_DEPTH_TEST);
@@ -954,8 +980,6 @@ int main( int argc, char* args[] )
 	//load stuff from files
 	//- usually do just once
 	loadAssets();
-	
-	//playMusic();
 
 	while (!done) //LOOP FROM HERE, for 2000ms (or if done flag is set)
 		//WARNING: SDL_GetTicks is only accurate to milliseconds, use SDL_GetPerformanceCounter and SDL_GetPerformanceFrequency for higher accuracy
@@ -964,7 +988,7 @@ int main( int argc, char* args[] )
 
 		handleInput();
 
-		updateSimulation(0.02); //call update simulation with an amount of time to simulate for (in seconds)
+		updateSimulation(0.2f); //call update simulation with an amount of time to simulate for (in seconds)
 		  //WARNING - we are always updating by a constant amount of time. This should be tied to how long has elapsed
 		    // see, for example, http://headerphile.blogspot.co.uk/2014/07/part-9-no-more-delays.html
 
