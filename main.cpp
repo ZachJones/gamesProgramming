@@ -12,12 +12,11 @@
 
 #include "PxPhysicsAPI.h"
 
-#define GLM_FORCE_RADIANS //force glm to use radians //must do **before** including GLM headers
-//NOTE: GLSL uses radians, so will do the same, for consistency
+#define GLM_FORCE_RADIANS
 
-#include <glm/glm.hpp> //include the main glm header
-#include <glm/gtc/matrix_transform.hpp> //include functions to ease the calculation of the view and projection matrices
-#include <glm/gtc/type_ptr.hpp> //include functionality for converting a matrix object into a float array for usage in OpenGL
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
@@ -116,6 +115,18 @@ GLuint textureID3;
 GLuint textureID4;
 GLuint textureID5;
 GLuint textureID6;
+
+//Score Textures
+GLuint textureID7;
+GLuint textureID8;
+GLuint textureID9;
+GLuint textureID10;
+GLuint textureID11;
+GLuint textureID12;
+GLuint textureID13;
+GLuint textureID14;
+GLuint textureID15;
+GLuint textureID16;
 
 float enemyMoveX = 0.0f;
 float enemyMoveY = 0.0f;
@@ -517,6 +528,256 @@ void initializeTexturesAndSamplers()
 	SDL_FreeSurface(image6);
 
 	cout << "texture created OK! GLUint is: " << textureID6 << std::endl;
+
+
+	//################################################################################################ 1
+	SDL_Surface* image7 = SDL_LoadBMP("assets/1.bmp");
+	if (image7 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID7); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID7);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image7->format->BytesPerPixel, image7->w, image7->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image7->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image7);
+
+	cout << "texture created OK! GLUint is: " << textureID7 << std::endl;
+
+
+	//################################################################################################ 2
+	SDL_Surface* image8 = SDL_LoadBMP("assets/2.bmp");
+	if (image8 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID8); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID8);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image8->format->BytesPerPixel, image8->w, image8->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image8->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image8);
+
+	cout << "texture created OK! GLUint is: " << textureID8 << std::endl;
+
+
+	//################################################################################################ 3
+	SDL_Surface* image9 = SDL_LoadBMP("assets/3.bmp");
+	if (image9 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID9); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID9);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image9->format->BytesPerPixel, image9->w, image9->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image9->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image9);
+
+	cout << "texture created OK! GLUint is: " << textureID9 << std::endl;
+
+
+	//################################################################################################ 4
+	SDL_Surface* image10 = SDL_LoadBMP("assets/4.bmp");
+	if (image10 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID10); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID10);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image10->format->BytesPerPixel, image10->w, image10->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image10->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image10);
+
+	cout << "texture created OK! GLUint is: " << textureID10 << std::endl;
+
+
+	//################################################################################################ 5
+	SDL_Surface* image11 = SDL_LoadBMP("assets/5.bmp");
+	if (image11 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID11); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID11);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image11->format->BytesPerPixel, image11->w, image11->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image11->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image11);
+
+	cout << "texture created OK! GLUint is: " << textureID11 << std::endl;
+
+
+	//################################################################################################ 6
+	SDL_Surface* image12 = SDL_LoadBMP("assets/6.bmp");
+	if (image12 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID12); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID12);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image12->format->BytesPerPixel, image12->w, image12->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image12->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image12);
+
+	cout << "texture created OK! GLUint is: " << textureID12 << std::endl;
+
+
+	//################################################################################################ 7
+	SDL_Surface* image13 = SDL_LoadBMP("assets/7.bmp");
+	if (image13 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID13); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID13);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image13->format->BytesPerPixel, image13->w, image13->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image13->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image13);
+
+	cout << "texture created OK! GLUint is: " << textureID13 << std::endl;
+
+
+	//################################################################################################ 8
+	SDL_Surface* image14 = SDL_LoadBMP("assets/8.bmp");
+	if (image14 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID14); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID14);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image14->format->BytesPerPixel, image14->w, image14->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image14->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image14);
+
+	cout << "texture created OK! GLUint is: " << textureID14 << std::endl;
+
+
+	//################################################################################################ 9
+	SDL_Surface* image15 = SDL_LoadBMP("assets/9.bmp");
+	if (image15 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID15); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID15);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image15->format->BytesPerPixel, image15->w, image15->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image15->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image15);
+
+	cout << "texture created OK! GLUint is: " << textureID15 << std::endl;
+
+
+	//################################################################################################ 0
+	SDL_Surface* image16 = SDL_LoadBMP("assets/0.bmp");
+	if (image16 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID16); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID16);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image16->format->BytesPerPixel, image16->w, image16->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image16->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image16);
+
+	cout << "texture created OK! GLUint is: " << textureID16 << std::endl;
 }
 
 void loadAssets()
@@ -1157,17 +1418,78 @@ void render()
 		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
 
 
-		//############################################################################################################## CUBE
-		glBindTexture(GL_TEXTURE_2D, textureID); //Load Cube texture
+		//############################################################################################################### SCORE
+		int tempScore = totalScore;
+		int tens = 0;
+		float numChange = 0.0f;
 
-		glm::mat4 rotateMatrix5 = glm::rotate(glm::mat4(), angle, glm::normalize(glm::vec3(1, 0, 1)));//Initialisation Rotation
-		glm::mat4 translateMatrix6 = glm::translate(glm::vec3(0.0f, 2.0f, -0.3f)); //Initialisation Translation
+		do //Find out tens
+		{
+			tens++;
+			tempScore /= 10;
+		} while (tempScore > 9);
 
-		modelMatrix5 = translateMatrix6 * rotateMatrix5;
+		for (int iCounter = tens; iCounter > 0; iCounter--)
+		{
+			glBindTexture(GL_TEXTURE_2D, textureID16);
+
+			glm::mat4 translateMatrix6 = glm::translate(glm::vec3(0.0f, 2.0f, 0.5f - numChange)); //-0.3f
+
+			modelMatrix5 = translateMatrix6;
+
+			glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix5));
+
+			glDrawArrays(GL_TRIANGLES, 48, 6); //Generates the plane
+
+			numChange += 0.5f;
+		}
+
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+		switch (tempScore)
+		{
+		case 0:
+			glBindTexture(GL_TEXTURE_2D, textureID16);
+			break;
+		case 1:
+			glBindTexture(GL_TEXTURE_2D, textureID7);
+			break;
+		case 2:
+			glBindTexture(GL_TEXTURE_2D, textureID8);
+			break;
+		case 3:
+			glBindTexture(GL_TEXTURE_2D, textureID9);
+			break;
+		case 4:
+			glBindTexture(GL_TEXTURE_2D, textureID10);
+			break;
+		case 5:
+			glBindTexture(GL_TEXTURE_2D, textureID11);
+			break;
+		case 6:
+			glBindTexture(GL_TEXTURE_2D, textureID12);
+			break;
+		case 7:
+			glBindTexture(GL_TEXTURE_2D, textureID13);
+			break;
+		case 8:
+			glBindTexture(GL_TEXTURE_2D, textureID14);
+			break;
+		case 9:
+			glBindTexture(GL_TEXTURE_2D, textureID15);
+			break;
+		default:
+			glBindTexture(GL_TEXTURE_2D, textureID16);
+			break;
+		}
+
+		glm::mat4 translateMatrix6 = glm::translate(glm::vec3(0.0f, 2.0f, 0.5f - numChange)); //-0.3f
+
+		modelMatrix5 = translateMatrix6;
 
 		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix5));
 
-		glDrawArrays(GL_TRIANGLES, 30, 36); //Generates the plane
+		glDrawArrays(GL_TRIANGLES, 48, 6); //Generates the plane
 
 		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
 
@@ -1193,13 +1515,6 @@ void render()
 	glDisableVertexAttribArray(0); //cleanup
 	glUseProgram(0); //clean up
 
-}
-
-void cleanUp()
-{
-	SDL_GL_DeleteContext(context);
-	SDL_DestroyWindow(win);
-	cout << "Cleaning up OK!\n";
 }
 
 void playMusic()
@@ -1239,6 +1554,13 @@ void playMusic()
 		if (currentScreen == "game")
 			Mix_PlayMusic(music, -1);
 	}
+}
+
+void cleanUp()
+{
+	SDL_GL_DeleteContext(context);
+	SDL_DestroyWindow(win);
+	cout << "Cleaning up OK!\n";
 }
 
 int main( int argc, char* args[] )
@@ -1290,7 +1612,7 @@ int main( int argc, char* args[] )
 			
 			if (score == true)
 			{
-				totalScore++;
+				totalScore += 1;
 				score = false;
 			}
 
