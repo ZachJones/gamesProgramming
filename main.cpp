@@ -133,6 +133,7 @@ GLuint textureID17;
 GLuint textureID18;
 GLuint textureID19;
 GLuint textureID20;
+GLuint textureID21;
 
 float enemyMoveX = 0.0f;
 float enemyMoveY = 0.0f;
@@ -904,6 +905,31 @@ void initializeTexturesAndSamplers()
 	SDL_FreeSurface(image20);
 
 	cout << "texture created OK! GLUint is: " << textureID20 << std::endl;
+
+
+	//################################################################################################ Instructions
+	SDL_Surface* image21 = SDL_LoadBMP("assets/Instructions.bmp");
+	if (image21 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID21); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID21);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image21->format->BytesPerPixel, image21->w, image21->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image21->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image21);
+
+	cout << "texture created OK! GLUint is: " << textureID21 << std::endl;
 }
 
 void loadAssets()
@@ -977,7 +1003,7 @@ void updateSimulation(float simLength) //update simulation with an amount of tim
 			pickup = true;
 		}
 
-		//Enemy player collide with object
+		//Enemy player collide with powerup
 		if (playerEnemyX - 0.5f < powerupPosX && playerEnemyX + 0.5f > powerupPosX && playerEnemyZ - 0.5f < powerupPosZ && playerEnemyZ + 0.5f> powerupPosZ)
 		{
 			enemyPowerup = true;
@@ -1224,7 +1250,7 @@ void handleInput()
 	viewChangeZ = movementRadius * sinf(movementRotationAngle);
 
 
-	//############################################################################################################## EXIT CONTROLS
+	//############################################################################################################## EXIT & MENU CONTROLS
 	if(movement[SDL_SCANCODE_ESCAPE])
 	{
 		done = true;
@@ -1279,6 +1305,22 @@ void handleInput()
 
 			currentScreen = "game";
 			playMusic();
+		}
+	}
+
+	if (movement[SDL_SCANCODE_I])
+	{
+		if (currentScreen == "menu")
+		{
+			currentScreen = "instructions";
+		}
+	}
+
+	if (movement[SDL_SCANCODE_M])
+	{
+		if (currentScreen == "instructions")
+		{
+			currentScreen = "menu";
 		}
 	}
 }
@@ -1459,6 +1501,32 @@ void render()
 		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix5));
 
 		glDrawArrays(GL_TRIANGLES, 30, 36); //Generates the plane
+
+		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+		//############################################################################################################## PROJECTION MATRIX
+		float fovy = glm::radians(90.0f); //Default = 1.0f               - i.e. the view "cone"
+		float aspect = 4.0f / 4.0f; //Default = 4.0f/3.0f     - i.e. aspect ratio 4:3
+		float zNear = 0.1f; //Default = 0.1f              - i.e. how close before clipping
+		float zFar = 100.0f; //Default = 1.0f                 - i.e. how far before clipping
+
+		projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
+
+		//############################################################################################################## VIEW MATRIX
+		glm::vec3 viewEye = glm::vec3(-0.0001f, 4.0f, 0.0f);
+		glm::vec3 viewCenter = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+		viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
+	}
+
+	if (currentScreen == "instructions")
+	{
+		//############################################################################################################## LEVEL
+		glBindTexture(GL_TEXTURE_2D, textureID21); //Load instructions texture
+
+		glDrawArrays(GL_TRIANGLES, 0, 6); //Generates the plane
 
 		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
 
@@ -1701,7 +1769,7 @@ void render()
 			{
 				glBindTexture(GL_TEXTURE_2D, textureID16);
 
-				glm::mat4 translateMatrix6 = glm::translate(glm::vec3(-0.2f, 2.0f, 0.5f - numChange)); //-0.3f
+				glm::mat4 translateMatrix6 = glm::translate(glm::vec3(-0.2f, 2.0f, 0.0f - numChange)); //-0.3f
 
 				modelMatrix5 = translateMatrix6;
 
