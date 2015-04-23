@@ -2,6 +2,8 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <ctime>
+#include <cstdlib>
 
 #include <GL/glew.h>
 #include <SDL.h>
@@ -127,10 +129,21 @@ GLuint textureID13;
 GLuint textureID14;
 GLuint textureID15;
 GLuint textureID16;
+GLuint textureID17;
+GLuint textureID18;
+GLuint textureID19;
+GLuint textureID20;
 
 float enemyMoveX = 0.0f;
 float enemyMoveY = 0.0f;
 float enemyMoveZ = 0.0f;
+
+float playerEnemyX = 0.0f;
+float playerEnemyY = 0.0f;
+float playerEnemyZ = 0.0f;
+
+float moveSpeed = 0.02f;
+float enemyMoveSpeed = 0.015f;
 
 //our GL and GLSL variables
 
@@ -140,6 +153,7 @@ glm::mat4 modelMatrix3;
 glm::mat4 modelMatrix4;
 glm::mat4 modelMatrix5;
 glm::mat4 modelMatrix6;
+glm::mat4 modelMatrix7;
 GLuint matrixLocation; //<---------------------------------------------------------------- Should change to "modelLocation"
 
 glm::mat4 viewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)); //Default view (identity matrix)
@@ -159,10 +173,12 @@ GLuint playerBufferObject;
 GLuint vao;
 
 Mix_Music *music = NULL;
+Mix_Music *intro = NULL;
 Mix_Chunk *hitFX = NULL;
 
 int gameMiliseconds = 0;
 int gameTimer = 0;
+int powerupTimer = 0;
 int loading = 0;
 
 bool isHurt = false;
@@ -170,6 +186,22 @@ float playerHealth = 1.0f;
 
 bool score = false;
 int totalScore = 0;
+
+float powerupMove = 0.0f;
+bool powerupDown = true;
+
+float levelLO = -4.5f;
+float levelHI = 4.5f;
+float powerupPosX;
+float powerupPosZ;
+bool pickup = true;
+bool powerup = false;
+bool enemyPickup = true;
+bool enemyPowerup = false;
+
+bool playerCollided = true;
+
+int volume = 50;
 
 void getPlayerRotation();
 void initialise();
@@ -406,7 +438,7 @@ void initializeTexturesAndSamplers()
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, image->format->BytesPerPixel, image->w, image->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, image->format->BytesPerPixel, image->w, image->h, 0, GL_BGR, GL_UNSIGNED_BYTE, image->pixels);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	SDL_FreeSurface(image);
@@ -449,7 +481,7 @@ void initializeTexturesAndSamplers()
 	glBindTexture(GL_TEXTURE_2D, textureID3);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, image3->format->BytesPerPixel, image3->w, image3->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image3->pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, image3->format->BytesPerPixel, image3->w, image3->h, 0, GL_BGR, GL_UNSIGNED_BYTE, image3->pixels);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	SDL_FreeSurface(image3);
@@ -778,6 +810,100 @@ void initializeTexturesAndSamplers()
 	SDL_FreeSurface(image16);
 
 	cout << "texture created OK! GLUint is: " << textureID16 << std::endl;
+
+
+	//################################################################################################ WOOD WALLS
+	SDL_Surface* image17 = SDL_LoadBMP("assets/Wood.bmp");
+	if (image17 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID17); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID17);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image17->format->BytesPerPixel, image17->w, image17->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image17->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image17);
+
+	cout << "texture created OK! GLUint is: " << textureID17 << std::endl;
+
+
+	//################################################################################################ GREY FLOOR
+	SDL_Surface* image18 = SDL_LoadBMP("assets/Floor.bmp");
+	if (image18 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID18); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID18);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, image18->format->BytesPerPixel, image18->w, image18->h, 0, GL_BGR, GL_UNSIGNED_BYTE, image18->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image18);
+
+	cout << "texture created OK! GLUint is: " << textureID18 << std::endl;
+
+
+	//################################################################################################ Score cube
+	SDL_Surface* image19 = SDL_LoadBMP("assets/Death.bmp");
+	if (image19 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID19); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID19);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, image19->format->BytesPerPixel, image19->w, image19->h, 0, GL_RGB, GL_UNSIGNED_BYTE, image19->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image19);
+
+	cout << "texture created OK! GLUint is: " << textureID19 << std::endl;
+
+
+	//################################################################################################ Pickups
+	SDL_Surface* image20 = SDL_LoadBMP("assets/Pickup.bmp");
+	if (image20 == NULL)
+	{
+		cout << "image loading (for texture) failed." << std::endl;
+		SDL_Quit();
+		exit(1);
+	}
+
+	glEnable(GL_TEXTURE_2D); //enable 2D texturing
+	glGenTextures(1, &textureID20); //generate a texture ID and store it
+	glBindTexture(GL_TEXTURE_2D, textureID20);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, image20->format->BytesPerPixel, image20->w, image20->h, 0, GL_BGR, GL_UNSIGNED_BYTE, image20->pixels);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SDL_FreeSurface(image20);
+
+	cout << "texture created OK! GLUint is: " << textureID20 << std::endl;
 }
 
 void loadAssets()
@@ -803,7 +929,7 @@ void updateSimulation(float simLength) //update simulation with an amount of tim
 
 	if (currentScreen == "game")
 	{
-		//Enemy collision detection
+		//Enemy AI movement
 		if (moveSpeedX + 1.2f > enemyMoveX)
 		{
 			enemyMoveX += 0.015;
@@ -822,14 +948,65 @@ void updateSimulation(float simLength) //update simulation with an amount of tim
 			enemyMoveZ -= 0.015;
 		}
 
-		if (moveSpeedX + 1.0f < enemyMoveX && moveSpeedX + 1.4 > enemyMoveX && moveSpeedZ - 0.4f < enemyMoveZ && moveSpeedZ - 0.0 > enemyMoveZ)
+		//Player collide with death cube
+		if (currentView == "player")
 		{
-			isHurt = true;
+			if (moveSpeedX + 1.0f < enemyMoveX && moveSpeedX + 1.4 > enemyMoveX && moveSpeedZ - 0.4f < enemyMoveZ && moveSpeedZ - 0.0 > enemyMoveZ)
+			{
+				isHurt = true;
+			}
+		}
+		else
+		{
+			if (moveSpeedX + 1.0f < playerEnemyX && moveSpeedX + 1.4 > playerEnemyX && moveSpeedZ - 0.4f < playerEnemyZ && moveSpeedZ - 0.0 > playerEnemyZ)
+			{
+				isHurt = true;
+			}
 		}
 
+		//Player collide with score cube
 		if (moveSpeedX < -1.0f && moveSpeedX > -1.4f && moveSpeedZ < 0.3f && moveSpeedZ > -0.26)
 		{
 			score = true;
+		}
+
+		//Player collide with powerup
+		if (moveSpeedX + 1.0f < powerupPosX && moveSpeedX + 1.4 > powerupPosX && moveSpeedZ - 0.4f < powerupPosZ && moveSpeedZ - 0.0 > powerupPosZ)
+		{
+			powerup = true;
+			pickup = true;
+		}
+
+		//Enemy player collide with object
+		if (playerEnemyX - 0.5f < powerupPosX && playerEnemyX + 0.5f > powerupPosX && playerEnemyZ - 0.5f < powerupPosZ && playerEnemyZ + 0.5f> powerupPosZ)
+		{
+			enemyPowerup = true;
+			enemyPickup = true;
+		}
+
+		//Enemy and player wall collisions
+		if (!(moveSpeedX > -6.4f && moveSpeedX < 3.0f && moveSpeedZ > -4.5f && moveSpeedZ < 4.5f))
+		{
+			if (!(moveSpeedX > -6.4f))
+				moveSpeedX += moveSpeed;
+			if (!(moveSpeedX < 3.0f))
+				moveSpeedX -= moveSpeed;
+			if (!(moveSpeedZ > -4.5f))
+				moveSpeedZ += moveSpeed;
+			if (!(moveSpeedZ < 4.5f))
+				moveSpeedZ -= moveSpeed;
+		}
+
+		if (!(playerEnemyX > -5.0f && playerEnemyX < 4.0f && playerEnemyZ > -4.5f && playerEnemyZ < 4.5f))
+		{
+			if (!(playerEnemyX > -5.0f))
+				playerEnemyX += enemyMoveSpeed;
+			if (!(playerEnemyX < 4.0f))
+				playerEnemyX -= enemyMoveSpeed;
+			if (!(playerEnemyZ > -4.5f))
+				playerEnemyZ += enemyMoveSpeed;
+			if (!(playerEnemyZ < 4.5f))
+				playerEnemyZ -= enemyMoveSpeed;
 		}
 	}
 }
@@ -877,7 +1054,7 @@ void handleInput()
 	
 	if(movement[SDL_SCANCODE_W])
 	{
-		moveSpeedX += 0.02f;
+		moveSpeedX += moveSpeed;
 		//getPlayerRotation();
 		
 		if(currentView.compare("player") == 0)
@@ -895,7 +1072,7 @@ void handleInput()
 
 	if(movement[SDL_SCANCODE_S])
 	{
-		moveSpeedX -= 0.02f;
+		moveSpeedX -= moveSpeed;
 
 		if(currentView.compare("player") == 0)
 		{
@@ -914,7 +1091,7 @@ void handleInput()
 	//Angle of rotation within the view sphere
 	if(movement[SDL_SCANCODE_D])
 	{
-		moveSpeedZ += 0.02f;
+		moveSpeedZ += moveSpeed;
 
 		if(currentView.compare("player") == 0)
 		{
@@ -931,7 +1108,7 @@ void handleInput()
 
 	if(movement[SDL_SCANCODE_A])
 	{
-		moveSpeedZ -= 0.02f;
+		moveSpeedZ -= moveSpeed;
 
 		if(currentView.compare("player") == 0)
 		{
@@ -946,6 +1123,28 @@ void handleInput()
 		}
 	}
 	
+
+	//############################################################################################################## PLAYER CONTROLS
+	if (movement[SDL_SCANCODE_UP])
+	{
+		playerEnemyX += enemyMoveSpeed;
+	}
+
+	if (movement[SDL_SCANCODE_DOWN])
+	{
+		playerEnemyX -= enemyMoveSpeed;
+	}
+
+	if (movement[SDL_SCANCODE_LEFT])
+	{
+		playerEnemyZ -= enemyMoveSpeed;
+	}
+
+	if (movement[SDL_SCANCODE_RIGHT])
+	{
+		playerEnemyZ += enemyMoveSpeed;
+	}
+
 
 	//############################################################################################################## movement CONTROLS
 
@@ -1011,6 +1210,10 @@ void handleInput()
 		centreX = 0.0f;
 		centreY = 0.0f;
 		centreZ = 0.0f;
+
+		enemyMoveX = 0.0f;
+		enemyMoveY = 0.0f;
+		enemyMoveZ = 0.0f;
 
 		currentView = "freecam";
 	}
@@ -1085,7 +1288,6 @@ void getPlayerRotation()
 	double playerRotation = movementRotationAngle * (180 / M_PI);
 	double playerDirection = 0;
 	float rotationSize = playerRotation / 1000; //Used to determine the moveSpeed
-	float moveSpeed = 0.045f;
 	bool positive = false;
 
 	if (playerRotation > 0)
@@ -1247,7 +1449,7 @@ void render()
 
 
 		//############################################################################################################## CUBE
-		glBindTexture(GL_TEXTURE_2D, textureID); //Load Cube texture
+		glBindTexture(GL_TEXTURE_2D, textureID3); //Load Cube texture
 
 		glm::mat4 rotateMatrix5 = glm::rotate(glm::mat4(), angle, glm::normalize(glm::vec3(1, 0, 1)));//Initialisation Rotation
 		glm::mat4 translateMatrix6 = glm::translate(glm::vec3(-1.2f, 1.5f, -0.3f)); //Initialisation Translation
@@ -1289,7 +1491,7 @@ void render()
 
 
 		//############################################################################################################## CUBE
-		glBindTexture(GL_TEXTURE_2D, textureID); //Load Cube texture
+		glBindTexture(GL_TEXTURE_2D, textureID3); //Load Cube texture
 
 		glm::mat4 rotateMatrix5 = glm::rotate(glm::mat4(), angle, glm::normalize(glm::vec3(1, 0, 1)));//Initialisation Rotation
 		glm::mat4 translateMatrix6 = glm::translate(glm::vec3(-1.2f, 1.5f, -0.3f)); //Initialisation Translation
@@ -1321,14 +1523,6 @@ void render()
 
 	if (currentScreen == "game")
 	{
-		//############################################################################################################## LEVEL
-		glBindTexture(GL_TEXTURE_2D, textureID2); //Bind wall texture
-
-		glDrawArrays(GL_TRIANGLES, 0, 30);
-
-		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
-
-
 		//############################################################################################################## PROJECTION MATRIX
 		float fovy = glm::radians(90.0f); //Default = 1.0f               - i.e. the view "cone"
 		float aspect = 4.0f / 4.0f; //Default = 4.0f/3.0f     - i.e. aspect ratio 4:3
@@ -1337,45 +1531,117 @@ void render()
 
 		projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
 
-		//############################################################################################################## VIEW MATRIX
-		glm::vec3 viewEye = glm::vec3(eyeCentreX, eyeCentreY, eyeCentreZ); //Default = (0.0f, 0.0f, -1.0f)
-		glm::vec3 viewCenter = glm::vec3(centreX + 0.3f, centreY + 0.3f, centreZ); //Default = (0.0f, 0.0f, 0.0f)
-		glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f); //Default = (0.0f, 1.0f, 0.0f)
+		if (currentView == "player")
+		{
+			//############################################################################################################## LEVEL
+			glBindTexture(GL_TEXTURE_2D, textureID2); //Bind wall texture
 
-		viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
+			glDrawArrays(GL_TRIANGLES, 0, 30);
 
-
-		//############################################################################################################## HUD
-		glBindTexture(GL_TEXTURE_2D, textureID); //Bind health texture
-
-		glm::mat4 translateMatrix4 = glm::translate(glm::vec3(0.0, 0.0, 0.0)); //Initialisation Translation
-		glm::mat4 rotateMatrix4 = glm::rotate(glm::mat4(), -0.3f, glm::normalize(glm::vec3(0, 0, 1)));//Initialisation Rotation
-		glm::mat4 translateMatrix5 = glm::translate(glm::vec3(eyeCentreX + 5.0, -1.0, eyeCentreZ)); //Initialisation Translation
-		glm::mat4 scaleMatrix = glm::scale(glm::vec3(1.0f, 1.0f, playerHealth));
-
-		modelMatrix4 = translateMatrix5 * scaleMatrix * rotateMatrix4 * translateMatrix4;
-
-		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix4));
-		glDrawArrays(GL_TRIANGLES, 66, 6);
-
-		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+			glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
 
 
-		//############################################################################################################## ENEMY CUBE
-		glBindTexture(GL_TEXTURE_2D, textureID3); //Bind death texture
+			//############################################################################################################## VIEW MATRIX - Camera follow
+			glm::vec3 viewEye = glm::vec3(eyeCentreX, eyeCentreY, eyeCentreZ); //Default = (0.0f, 0.0f, -1.0f)
+			glm::vec3 viewCenter = glm::vec3(centreX + 0.3f, centreY + 0.3f, centreZ); //Default = (0.0f, 0.0f, 0.0f)
+			glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f); //Default = (0.0f, 1.0f, 0.0f)
 
-		glm::mat4 translateMatrix3 = glm::translate(glm::vec3(enemyMoveX, 0.0, enemyMoveZ)); //Initialisation Translation
-
-		modelMatrix3 = translateMatrix3;
-
-		glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix3));
-		glDrawArrays(GL_TRIANGLES, 30, 36);
-
-		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+			viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
 
 
-		//############################################################################################################## CUBE
-		glBindTexture(GL_TEXTURE_2D, textureID); //Load Cube texture
+			//############################################################################################################## HUD
+			glBindTexture(GL_TEXTURE_2D, textureID); //Bind health texture
+
+			glm::mat4 translateMatrix4 = glm::translate(glm::vec3(0.0, 0.0, 0.0)); //Initialisation Translation
+			glm::mat4 rotateMatrix4 = glm::rotate(glm::mat4(), -0.3f, glm::normalize(glm::vec3(0, 0, 1)));//Initialisation Rotation
+			glm::mat4 translateMatrix5 = glm::translate(glm::vec3(eyeCentreX + 5.0, -1.0, eyeCentreZ)); //Initialisation Translation
+			glm::mat4 scaleMatrix = glm::scale(glm::vec3(1.0f, 1.0f, playerHealth));
+
+			modelMatrix4 = translateMatrix5 * scaleMatrix * rotateMatrix4 * translateMatrix4;
+
+			glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix4));
+			glDrawArrays(GL_TRIANGLES, 66, 6);
+
+			glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+			//############################################################################################################## ENEMY CUBE
+			glBindTexture(GL_TEXTURE_2D, textureID3); //Bind death texture
+
+			glm::mat4 translateMatrix3 = glm::translate(glm::vec3(enemyMoveX, 0.0, enemyMoveZ)); //Initialisation Translation
+
+			modelMatrix3 = translateMatrix3;
+
+			glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix3));
+			glDrawArrays(GL_TRIANGLES, 30, 36);
+
+			glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+		}
+		else if (currentView == "freecam")
+		{
+			//############################################################################################################## FLOOR
+			glBindTexture(GL_TEXTURE_2D, textureID18); //Bind floor texture
+
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+
+			glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+			//############################################################################################################## WALLS
+			glBindTexture(GL_TEXTURE_2D, textureID17); //Bind wall texture
+
+			glDrawArrays(GL_TRIANGLES, 6, 24);
+
+			glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+			//############################################################################################################## VIEW MATRIX - Camera static
+			glm::vec3 viewEye = glm::vec3(-4.5f, 2.0f, 0.0f); //Default = (0.0f, 0.0f, -1.0f)
+			glm::vec3 viewCenter = glm::vec3(centreX + 0.3f, centreY + 0.3f, centreZ); //Default = (0.0f, 0.0f, 0.0f)
+			glm::vec3 viewUp = glm::vec3(0.0f, 1.0f, 0.0f); //Default = (0.0f, 1.0f, 0.0f)
+
+			viewMatrix = glm::lookAt(viewEye, viewCenter, viewUp);
+
+
+			//############################################################################################################## ENEMY CUBE
+			glBindTexture(GL_TEXTURE_2D, textureID3); //Bind death texture
+
+			glm::mat4 translateMatrix3 = glm::translate(glm::vec3(playerEnemyX, 0.0, playerEnemyZ)); //Initialisation Translation
+
+			modelMatrix3 = translateMatrix3;
+
+			glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix3));
+			glDrawArrays(GL_TRIANGLES, 30, 36);
+
+			glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+
+
+			//############################################################################################################## POWERUP CUBE
+			glBindTexture(GL_TEXTURE_2D, textureID20); //Load Cube texture
+
+			if (pickup == true || enemyPickup == true)
+			{
+				powerupPosX = levelLO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (levelHI - levelLO)));
+				powerupPosZ = levelLO + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (levelHI - levelLO)));
+				pickup = false;
+				enemyPickup = false;
+			}
+
+			glm::mat4 translateMatrix8 = glm::translate(glm::vec3(powerupPosX, 0.0f, powerupPosZ)); //Initialisation Translation
+			glm::mat4 translateMatrix9 = glm::translate(glm::vec3(0.0f, powerupMove, 0.0f)); //Initialisation Translation
+
+			modelMatrix7 = translateMatrix9 * translateMatrix8;
+
+			glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix7));
+
+			glDrawArrays(GL_TRIANGLES, 30, 36); //Generates the plane
+
+			glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
+		}
+
+
+		//############################################################################################################## SCORE CUBE
+		glBindTexture(GL_TEXTURE_2D, textureID19); //Load Cube texture
 
 		glm::mat4 translateMatrix7 = glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)); //Initialisation Translation
 
@@ -1423,28 +1689,31 @@ void render()
 		int tens = 0;
 		float numChange = 0.0f;
 
-		do //Find out tens
+		if (totalScore > 9)
 		{
-			tens++;
-			tempScore /= 10;
-		} while (tempScore > 9);
+			do //Find out tens
+			{
+				tens++;
+				tempScore /= 10;
+			} while (tempScore > 9);
 
-		for (int iCounter = tens; iCounter > 0; iCounter--)
-		{
-			glBindTexture(GL_TEXTURE_2D, textureID16);
+			for (int iCounter = tens; iCounter > 0; iCounter--)
+			{
+				glBindTexture(GL_TEXTURE_2D, textureID16);
 
-			glm::mat4 translateMatrix6 = glm::translate(glm::vec3(0.0f, 2.0f, 0.5f - numChange)); //-0.3f
+				glm::mat4 translateMatrix6 = glm::translate(glm::vec3(-0.2f, 2.0f, 0.5f - numChange)); //-0.3f
 
-			modelMatrix5 = translateMatrix6;
+				modelMatrix5 = translateMatrix6;
 
-			glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix5));
+				glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix5));
 
-			glDrawArrays(GL_TRIANGLES, 48, 6); //Generates the plane
+				glDrawArrays(GL_TRIANGLES, 48, 6); //Generates the plane
 
-			numChange += 0.5f;
+				numChange += 0.5f;
+			}
+
+			glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
 		}
-
-		glBindTexture(GL_TEXTURE_2D, 0); //Clear the texture buffer for other textures
 
 		switch (tempScore)
 		{
@@ -1483,7 +1752,7 @@ void render()
 			break;
 		}
 
-		glm::mat4 translateMatrix6 = glm::translate(glm::vec3(0.0f, 2.0f, 0.5f - numChange)); //-0.3f
+		glm::mat4 translateMatrix6 = glm::translate(glm::vec3(-0.2f, 2.0f, 0.0f - numChange)); //-0.3f
 
 		modelMatrix5 = translateMatrix6;
 
@@ -1538,6 +1807,7 @@ void playMusic()
 	}
 
 	music = Mix_LoadMUS("Hubris_MIDI.wav");
+	intro = Mix_LoadMUS("Intro.wav");
 	hitFX = Mix_LoadWAV("PlayerHit.wav");
 
 	if (music == NULL || hitFX == NULL)
@@ -1553,6 +1823,8 @@ void playMusic()
 
 		if (currentScreen == "game")
 			Mix_PlayMusic(music, -1);
+		else
+			Mix_PlayMusic(intro, -1);
 	}
 }
 
@@ -1568,6 +1840,7 @@ int main( int argc, char* args[] )
 	exeName = args[0];
 	//setup
 	//- do just once
+	srand(static_cast <unsigned> (time(0)));
 	initialise();
 	createWindow();
 	setGLAttributes();
@@ -1597,6 +1870,17 @@ int main( int argc, char* args[] )
 
 		//Basic timer
 		gameMiliseconds++;
+		powerupTimer++;
+
+		if (gameMiliseconds > 0) //Intro fade out
+		{
+			if (currentScreen == "loading")
+			{
+				volume -= 0.00000000000000355;
+
+				Mix_VolumeMusic(volume);
+			}
+		}
 
 		if (gameMiliseconds == 60)
 		{
@@ -1616,9 +1900,6 @@ int main( int argc, char* args[] )
 				score = false;
 			}
 
-			//cout << gameTimer << endl;
-			cout << totalScore << endl;
-
 			if (currentScreen == "loading")
 			{
 				if (loading == 5)
@@ -1626,6 +1907,7 @@ int main( int argc, char* args[] )
 					loading = 0;
 					currentScreen = "game";
 					playMusic();
+					Mix_VolumeMusic(50);
 				}
 				else
 					loading++;
@@ -1637,6 +1919,54 @@ int main( int argc, char* args[] )
 			Mix_HaltMusic();
 			currentScreen = "gameOver";
 		}
+
+		//Powerup animation
+		if (powerupMove >= 0.0f)
+			powerupDown = true;
+		else if (powerupMove <= -0.5f)
+			powerupDown = false;
+
+		if (powerupDown == true)
+			powerupMove -= 0.01f;
+		else
+			powerupMove += 0.01f;
+
+		//Powerup handling
+		if (powerupTimer >= 240)
+		{
+			powerup = false;
+			enemyPowerup = false;
+		}
+
+		if (powerup == true)
+		{
+			moveSpeed = 0.03;
+		}
+		else
+		{
+			moveSpeed = 0.02;
+		}
+
+		if (enemyPowerup == true)
+		{
+			enemyMoveSpeed = 0.03;
+		}
+		else
+		{
+			enemyMoveSpeed = 0.02;
+		}
+		
+		//Powerup timer handler
+		if (powerup == true || enemyPowerup == true)
+		{
+			powerupTimer++;
+		}
+		else
+		{
+			powerupTimer = 0;
+		}
+
+		//cout << powerupTimer << endl;
 	}
 
 	//Cleanup and exit
